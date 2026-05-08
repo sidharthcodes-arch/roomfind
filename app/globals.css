@@ -8,4 +8,9 @@
 
 body {
   -webkit-font-smoothing: antialiased;
+  font-family: var(--font-dm-sans), sans-serif;
 }
+
+/* Hide scrollbar for filter chips row */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

@@ -1,8 +1,8 @@
-import { Inter } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
 
-const inter = Inter({ subsets: ['latin'] })
+const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' })
 
 export const metadata = {
   title: 'RoomFind',
@@ -12,7 +12,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-slate-50 min-h-screen`}>
+      <body className={`${dmSans.variable} font-sans bg-[#ececea] min-h-screen`}>
         <div className="max-w-lg mx-auto min-h-screen relative">
           {children}
         </div>
