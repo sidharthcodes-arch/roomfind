@@ -1,0 +1,33 @@
+{
+  "name": "roomfind",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest --run"
+  },
+  "dependencies": {
+    "lucide-react": "latest",
+    "next": "14",
+    "next-auth": "^4.24.14",
+    "react": "18",
+    "react-dom": "18"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "latest",
+    "@testing-library/react": "latest",
+    "@testing-library/user-event": "latest",
+    "@vitejs/plugin-react": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "14",
+    "fast-check": "latest",
+    "jsdom": "latest",
+    "postcss": "latest",
+    "tailwindcss": "^3.4.19",
+    "vitest": "latest"
+  }
+}
