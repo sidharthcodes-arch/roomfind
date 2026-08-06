@@ -127,7 +127,7 @@ export default function ListingDetailPage({ params }) {
     : null
 
   return (
-    <div className="min-h-screen bg-[#ececea] pb-24">
+    <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center gap-3">

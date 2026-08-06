@@ -175,6 +175,14 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
         </div>
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5">
+          {listing._distanceKm != null && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold flex items-center gap-1">
+              <span>📍</span>
+              {listing._distanceKm < 1
+                ? `${Math.round(listing._distanceKm * 1000)}m away`
+                : `${listing._distanceKm.toFixed(1)} km away`}
+            </span>
+          )}
           {listing.furnished && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-brand-light text-brand font-medium">
               Furnished
@@ -262,6 +270,7 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [userLat, setUserLat] = useState(null)
   const [userLng, setUserLng] = useState(null)
+  const [radiusKm, setRadiusKm] = useState(10)
   const [hasNotif, setHasNotif] = useState(true)
   const [fetchError, setFetchError] = useState(null)
   const pageRef = useRef(0)
@@ -289,8 +298,20 @@ export default function HomePage() {
     if (activeFilter === 'Furnished') q = q.eq('furnished', true)
     if (activeFilter === 'Under ₹5k') q = q.lte('price', 5000)
 
+    // Server-side geographic bounding box query for "Near you"
+    if (activeFilter === 'Near you' && userLat != null && userLng != null) {
+      const deltaLat = radiusKm / 111.045
+      const deltaLng = radiusKm / (111.045 * Math.cos((userLat * Math.PI) / 180))
+
+      q = q
+        .gte('latitude', userLat - deltaLat)
+        .lte('latitude', userLat + deltaLat)
+        .gte('longitude', userLng - deltaLng)
+        .lte('longitude', userLng + deltaLng)
+    }
+
     return q
-  }, [activeFilter])
+  }, [activeFilter, userLat, userLng, radiusKm])
 
   const fetchPage = useCallback(async (page, replace = false) => {
     const from = page * PAGE_SIZE
@@ -339,14 +360,14 @@ export default function HomePage() {
       _commentCount: commentCountMap[l.id] ?? 0,
     }))
 
-    // Near you filter — client side
-    if (activeFilter === 'Near you' && userLat !== null && userLng !== null) {
-      enriched = filterByDistance(enriched, userLat, userLng)
+    // Near you filter — Haversine distance calculation and sorting
+    if (activeFilter === 'Near you' && userLat != null && userLng != null) {
+      enriched = filterByDistance(enriched, userLat, userLng, radiusKm)
     }
 
     setHasMore(data.length === PAGE_SIZE)
     setListings((prev) => replace ? enriched : [...prev, ...enriched])
-  }, [buildQuery, user, userLat, userLng, activeFilter])
+  }, [buildQuery, user, userLat, userLng, activeFilter, radiusKm])
 
   // Initial load / filter change
   useEffect(() => {
@@ -356,7 +377,7 @@ export default function HomePage() {
     setFetchError(null)
     setLoading(true)
     fetchPage(0, true).finally(() => setLoading(false))
-  }, [activeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilter, radiusKm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Infinite scroll sentinel
   useEffect(() => {
@@ -378,7 +399,7 @@ export default function HomePage() {
   }, [hasMore, loadingMore, loading, fetchPage])
 
   return (
-    <div className="min-h-screen bg-[#ececea] pb-24">
+    <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
 
       {/* ── Top bar ── */}
       <div className="sticky top-0 z-20 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
@@ -407,6 +428,28 @@ export default function HomePage() {
           </button>
         ))}
       </div>
+
+      {/* ── Radius selector sub-bar for Near You filter ── */}
+      {activeFilter === 'Near you' && (
+        <div className="bg-slate-50 border-b border-black/[0.07] px-4 py-2 flex items-center justify-between text-[12px] text-slate-600">
+          <span className="font-medium">Search Radius:</span>
+          <div className="flex gap-1.5">
+            {[2, 5, 10, 20, 50].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRadiusKm(r)}
+                className={`px-2.5 py-1 rounded-lg font-semibold text-[12px] transition-all ${
+                  radiusKm === r
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {r} km
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Feed ── */}
       <div className="px-3 pt-3">

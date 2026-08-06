@@ -2,7 +2,11 @@ import { DM_Sans } from 'next/font/google'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
 
-const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' })
+const dmSans = DM_Sans({ 
+  subsets: ['latin'], 
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'RoomFind',
@@ -12,10 +16,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} font-sans bg-[#ececea] min-h-screen`}>
-        <div className="max-w-lg mx-auto min-h-screen relative">
-          {children}
-        </div>
+      <body className={`${dmSans.variable} font-sans bg-[#ececea] min-h-screen text-slate-900 antialiased`}>
+        {children}
         <BottomNav />
       </body>
     </html>
