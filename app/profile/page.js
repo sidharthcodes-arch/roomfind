@@ -18,8 +18,10 @@ function Toast({ message, type = 'error', onDismiss }) {
   )
 }
 
-function ListingItem({ listing, onDelete }) {
+function ListingItem({ listing, onDelete, onToggleStatus }) {
   const firstPhoto = listing.photos?.[0] ?? null
+  const isAvailable = listing.status !== 'taken'
+
   return (
     <div className="flex gap-3 items-start p-3 bg-white rounded-xl border border-black/[0.09]">
       <div className="w-16 h-16 rounded-lg bg-slate-100 overflow-hidden shrink-0">
@@ -37,11 +39,19 @@ function ListingItem({ listing, onDelete }) {
           ₹{Number(listing.price).toLocaleString('en-IN')}/mo
         </p>
         <p className="text-slate-400 text-[12px] mt-0.5">{listing.area}, {listing.city}</p>
-        <span className={`inline-block mt-1 text-[11px] px-1.5 py-0.5 rounded-full font-medium ${
-          listing.status === 'available' ? 'bg-brand-light text-brand' : 'bg-slate-200 text-slate-500'
-        }`}>
-          {listing.status === 'available' ? 'Available' : 'Taken'}
-        </span>
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            type="button"
+            onClick={onToggleStatus}
+            className={`text-[11px] px-2.5 py-1 rounded-full font-semibold transition-all ${
+              isAvailable
+                ? 'bg-brand-light text-brand border border-brand/20 hover:bg-brand/20'
+                : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+            }`}
+          >
+            {isAvailable ? '✓ Available (Tap to Mark Taken)' : '✕ Taken (Tap to Mark Available)'}
+          </button>
+        </div>
       </div>
       <button onClick={onDelete}
         className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors shrink-0">
@@ -93,6 +103,17 @@ export default function ProfilePage() {
       fetchListings()
     }
   }, [user, fetchProfile, fetchListings])
+
+  const toggleListingStatus = async (id, currentStatus) => {
+    const nextStatus = currentStatus === 'taken' ? 'available' : 'taken'
+    const { error } = await supabase.from('listings').update({ status: nextStatus }).eq('id', id)
+    if (error) {
+      showToast('Failed to update room status')
+    } else {
+      setListings((prev) => prev.map((l) => l.id === id ? { ...l, status: nextStatus } : l))
+      showToast(`Listing marked as ${nextStatus === 'taken' ? 'Taken' : 'Available'}.`, 'success')
+    }
+  }
 
   const deleteListing = async (id) => {
     if (!window.confirm('Delete this listing? This cannot be undone.')) return
@@ -206,7 +227,12 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-2">
                 {listings.map((listing) => (
-                  <ListingItem key={listing.id} listing={listing} onDelete={() => deleteListing(listing.id)} />
+                  <ListingItem
+                    key={listing.id}
+                    listing={listing}
+                    onDelete={() => deleteListing(listing.id)}
+                    onToggleStatus={() => toggleListingStatus(listing.id, listing.status)}
+                  />
                 ))}
               </div>
             )}

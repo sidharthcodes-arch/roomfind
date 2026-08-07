@@ -28,6 +28,17 @@ function timeAgo(dateStr) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+function Toast({ message, type = 'success', onDismiss }) {
+  if (!message) return null
+  const bg = type === 'error' ? 'bg-red-500' : 'bg-brand'
+  return (
+    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 ${bg} text-white text-[13px] px-4 py-3 rounded-xl shadow-lg max-w-sm w-full mx-4 flex items-center justify-between gap-3 animate-fade-in`}>
+      <span>{message}</span>
+      <button onClick={onDismiss} className="text-white/80 hover:text-white shrink-0">✕</button>
+    </div>
+  )
+}
+
 function SkeletonDetail() {
   return (
     <div className="min-h-screen bg-[#ececea] pb-24 animate-pulse">
@@ -57,6 +68,36 @@ export default function ListingDetailPage({ params }) {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [saved, setSaved] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleShare = async (e) => {
+    if (e) e.preventDefault()
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/listings/${id}` : ''
+    const shareData = {
+      title: listing?.title || 'RoomFind Listing',
+      text: listing ? `Check out "${listing.title}" on RoomFind - ₹${Number(listing.price).toLocaleString('en-IN')}/mo in ${listing.area}, ${listing.city}!` : 'Check out this room on RoomFind!',
+      url: shareUrl,
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        if (err.name !== 'AbortError' && typeof navigator.clipboard !== 'undefined') {
+          await navigator.clipboard.writeText(shareUrl)
+          showToast('Listing link copied to clipboard!')
+        }
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl)
+      showToast('Listing link copied to clipboard!')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -117,7 +158,7 @@ export default function ListingDetailPage({ params }) {
   }
 
   const photos = listing.photos ?? []
-  const isTaken = listing.status === 'taken'
+  const isTaken = listing.status === 'taken' || listing.status === 'booked' || listing.is_available === false
   const ownerName = listing.users?.full_name ?? 'Owner'
   const prevPhoto = () => setCurrentPhoto((p) => (p - 1 + photos.length) % photos.length)
   const nextPhoto = () => setCurrentPhoto((p) => (p + 1) % photos.length)
@@ -127,7 +168,8 @@ export default function ListingDetailPage({ params }) {
     : null
 
   return (
-    <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
+    <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative border-x border-black/[0.05]">
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center gap-3">
@@ -293,7 +335,7 @@ export default function ListingDetailPage({ params }) {
             <MessageCircle className="w-5 h-5 text-slate-400" />
             <span className="text-[13px] font-medium text-slate-500">Comment</span>
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
+          <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors">
             <Share2 className="w-5 h-5 text-slate-400" />
             <span className="text-[13px] font-medium text-slate-500">Share</span>
           </button>
@@ -323,7 +365,11 @@ export default function ListingDetailPage({ params }) {
               </div>
             </div>
 
-            {!isTaken && whatsappHref ? (
+            {isTaken ? (
+              <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-200 text-slate-500 font-semibold text-[14px] cursor-not-allowed select-none">
+                Room no longer available
+              </div>
+            ) : whatsappHref ? (
               <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand text-white font-semibold text-[14px] active:opacity-90 transition-opacity">
                 <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -332,8 +378,8 @@ export default function ListingDetailPage({ params }) {
                 Contact on WhatsApp
               </a>
             ) : (
-              <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-200 text-slate-400 font-semibold text-[14px] cursor-not-allowed select-none">
-                Room no longer available
+              <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 font-semibold text-[14px] border border-black/[0.05] select-none">
+                Available (No Contact Phone Listed)
               </div>
             )}
           </div>

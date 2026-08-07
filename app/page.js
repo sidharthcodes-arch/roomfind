@@ -53,7 +53,7 @@ function CardSkeleton() {
 // ─── listing card ─────────────────────────────────────────────────────────────
 
 function ListingCard({ listing, currentUserId, onLikeToggle }) {
-  const isTaken = listing.status === 'taken'
+  const isTaken = listing.status === 'taken' || listing.status === 'booked' || listing.is_available === false
   const photos = listing.photos ?? []
   const [photoIdx, setPhotoIdx] = useState(0)
   const [liked, setLiked] = useState(listing._liked ?? false)
@@ -75,6 +75,29 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
     } else {
       await supabase.from('listing_likes').delete()
         .eq('listing_id', listing.id).eq('user_id', currentUserId)
+    }
+  }
+
+  const handleShare = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/listings/${listing.id}` : ''
+    const shareData = {
+      title: listing.title || 'RoomFind Listing',
+      text: `Check out "${listing.title}" on RoomFind - ₹${Number(listing.price).toLocaleString('en-IN')}/mo in ${listing.area}, ${listing.city}!`,
+      url: shareUrl,
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData)
+      } catch (err) {
+        if (err.name !== 'AbortError' && typeof navigator.clipboard !== 'undefined') {
+          await navigator.clipboard.writeText(shareUrl)
+        }
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(shareUrl)
     }
   }
 
@@ -221,7 +244,7 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
           <span className="text-[13px] font-medium text-slate-500">{listing._commentCount ?? 0}</span>
         </Link>
 
-        <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors">
+        <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors">
           <Share2 className="w-5 h-5 text-slate-400" />
           <span className="text-[13px] font-medium text-slate-500">Share</span>
         </button>
@@ -234,9 +257,13 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
         </button>
       </div>
 
-      {/* WhatsApp CTA */}
+      {/* CTA Section */}
       <div className="px-4 pb-4 pt-1">
-        {!isTaken && whatsappHref ? (
+        {isTaken ? (
+          <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-200 text-slate-500 font-semibold text-[14px] cursor-not-allowed select-none">
+            Room no longer available
+          </div>
+        ) : whatsappHref ? (
           <a
             href={whatsappHref}
             target="_blank"
@@ -250,8 +277,8 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
             Contact on WhatsApp
           </a>
         ) : (
-          <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-200 text-slate-400 font-semibold text-[14px] cursor-not-allowed select-none">
-            Room no longer available
+          <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 font-semibold text-[14px] border border-black/[0.05] select-none">
+            Available (No Contact Phone Listed)
           </div>
         )}
       </div>
