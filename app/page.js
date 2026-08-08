@@ -175,7 +175,7 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
         />
 
         {/* Status + room type badges overlay */}
-        <div className="absolute top-2.5 left-5 z-10 flex gap-1.5 pointer-events-none">
+        <div className="absolute top-2.5 left-5 z-[1] flex gap-1.5 pointer-events-none">
           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm ${
             isTaken ? 'bg-slate-700 text-white' : 'bg-brand text-white'
           }`}>
@@ -454,7 +454,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
 
       {/* ── Top bar ── */}
-      <div className="sticky top-0 z-20 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-30 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
         <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">RoomFind</h1>
         <button className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
           <Bell className="w-5 h-5 text-slate-600" />
@@ -465,7 +465,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Filter chips ── */}
-      <div className="sticky top-[57px] z-10 bg-white border-b border-black/[0.09] px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide">
+      <div className="sticky top-[57px] z-30 bg-white border-b border-black/[0.09] px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide">
         {FILTERS.map((f) => (
           <button
             key={f}
