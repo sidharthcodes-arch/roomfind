@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, Bookmark
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import ShareModal from '@/components/ShareModal'
 
 const genderLabel = {
   any: 'Any gender',
@@ -68,6 +69,7 @@ export default function ListingDetailPage({ params }) {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
   const [saved, setSaved] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
   const showToast = (message, type = 'success') => {
@@ -75,28 +77,9 @@ export default function ListingDetailPage({ params }) {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const handleShare = async (e) => {
+  const handleShare = (e) => {
     if (e) e.preventDefault()
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/listings/${id}` : ''
-    const shareData = {
-      title: listing?.title || 'RoomFind Listing',
-      text: listing ? `Check out "${listing.title}" on RoomFind - ₹${Number(listing.price).toLocaleString('en-IN')}/mo in ${listing.area}, ${listing.city}!` : 'Check out this room on RoomFind!',
-      url: shareUrl,
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch (err) {
-        if (err.name !== 'AbortError' && typeof navigator.clipboard !== 'undefined') {
-          await navigator.clipboard.writeText(shareUrl)
-          showToast('Listing link copied to clipboard!')
-        }
-      }
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(shareUrl)
-      showToast('Listing link copied to clipboard!')
-    }
+    setIsShareOpen(true)
   }
 
   useEffect(() => {
@@ -397,6 +380,12 @@ export default function ListingDetailPage({ params }) {
           </div>
         )}
       </div>
+
+      <ShareModal
+        isOpen={isShareOpen}
+        listing={listing}
+        onClose={() => setIsShareOpen(false)}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { filterByDistance } from '@/lib/utils'
+import ShareModal from '@/components/ShareModal'
 import { Bell, MapPin, Heart, MessageCircle, Share2, Bookmark, Plus, CheckCircle } from 'lucide-react'
 
 const PAGE_SIZE = 10
@@ -50,9 +51,33 @@ function CardSkeleton() {
   )
 }
 
+async function copyTextToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch (_) {}
+  }
+  try {
+    const textArea = document.createElement("textarea")
+    textArea.value = text
+    textArea.style.position = "fixed"
+    textArea.style.left = "-999999px"
+    textArea.style.top = "-999999px"
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    const successful = document.execCommand("copy")
+    textArea.remove()
+    return successful
+  } catch (_) {
+    return false
+  }
+}
+
 // ─── listing card ─────────────────────────────────────────────────────────────
 
-function ListingCard({ listing, currentUserId, onLikeToggle }) {
+function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
   const isTaken = listing.status === 'taken' || listing.status === 'booked' || listing.is_available === false
   const photos = listing.photos ?? []
   const [photoIdx, setPhotoIdx] = useState(0)
@@ -78,27 +103,10 @@ function ListingCard({ listing, currentUserId, onLikeToggle }) {
     }
   }
 
-  const handleShare = async (e) => {
+  const handleShare = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/listings/${listing.id}` : ''
-    const shareData = {
-      title: listing.title || 'RoomFind Listing',
-      text: `Check out "${listing.title}" on RoomFind - ₹${Number(listing.price).toLocaleString('en-IN')}/mo in ${listing.area}, ${listing.city}!`,
-      url: shareUrl,
-    }
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch (err) {
-        if (err.name !== 'AbortError' && typeof navigator.clipboard !== 'undefined') {
-          await navigator.clipboard.writeText(shareUrl)
-        }
-      }
-    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(shareUrl)
-    }
+    onShare?.(listing)
   }
 
   const whatsappHref = listing.users?.phone_number
@@ -300,6 +308,7 @@ export default function HomePage() {
   const [radiusKm, setRadiusKm] = useState(10)
   const [hasNotif, setHasNotif] = useState(true)
   const [fetchError, setFetchError] = useState(null)
+  const [shareListing, setShareListing] = useState(null)
   const pageRef = useRef(0)
   const sentinelRef = useRef(null)
 
@@ -506,6 +515,7 @@ export default function HomePage() {
                 key={listing.id}
                 listing={listing}
                 currentUserId={user?.id ?? null}
+                onShare={(l) => setShareListing(l)}
               />
             ))}
             {/* Sentinel for infinite scroll */}
@@ -530,6 +540,13 @@ export default function HomePage() {
       >
         <Plus className="w-7 h-7 text-white stroke-[2.5]" />
       </Link>
+
+      {/* ── Share Modal ── */}
+      <ShareModal
+        isOpen={!!shareListing}
+        listing={shareListing}
+        onClose={() => setShareListing(null)}
+      />
     </div>
   )
 }
