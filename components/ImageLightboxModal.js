@@ -26,15 +26,25 @@ export default function ImageLightboxModal({
     setCurrentIndex(initialIndex)
   }, [initialIndex, isOpen])
 
-  const nextPhoto = useCallback(() => {
+  const nextPhoto = useCallback((e) => {
+    if (e) e.stopPropagation()
     if (photos.length <= 1) return
     setCurrentIndex((i) => (i + 1) % photos.length)
   }, [photos.length])
 
-  const prevPhoto = useCallback(() => {
+  const prevPhoto = useCallback((e) => {
+    if (e) e.stopPropagation()
     if (photos.length <= 1) return
     setCurrentIndex((i) => (i - 1 + photos.length) % photos.length)
   }, [photos.length])
+
+  const handleClose = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    onClose?.()
+  }
 
   // Keyboard navigation
   useEffect(() => {
@@ -62,15 +72,18 @@ export default function ImageLightboxModal({
 
   // Swipe gesture handling for mobile screens
   const handleTouchStart = (e) => {
+    e.stopPropagation()
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
   }
 
   const handleTouchMove = (e) => {
+    e.stopPropagation()
     setTouchEnd(e.targetTouches[0].clientX)
   }
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
+    if (e) e.stopPropagation()
     if (!touchStart || !touchEnd) return
     const distance = touchStart - touchEnd
     const minSwipeDistance = 40
@@ -90,13 +103,19 @@ export default function ImageLightboxModal({
     : null
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col justify-between select-none animate-fade-in">
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-50 bg-black flex flex-col justify-between select-none animate-fade-in"
+    >
       
       {/* ── Top Bar (Twitter / X style header) ── */}
-      <div className="z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white"
+      >
         <div className="flex items-center gap-3 min-w-0">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0"
             aria-label="Close"
           >
@@ -127,7 +146,7 @@ export default function ImageLightboxModal({
             </span>
           )}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors shrink-0 hidden sm:flex"
           >
             <X className="w-5 h-5 text-white" />
@@ -138,6 +157,7 @@ export default function ImageLightboxModal({
       {/* ── Main Viewport (Full 100% Uncut Image View) ── */}
       <div
         className="relative flex-1 flex items-center justify-center w-full h-full overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -188,12 +208,18 @@ export default function ImageLightboxModal({
       </div>
 
       {/* ── Bottom Action Bar (Twitter / X style footer) ── */}
-      <div className="z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-3 pb-6 text-white border-t border-white/10">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-3 pb-6 text-white border-t border-white/10"
+      >
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             {onLikeToggle && (
               <button
-                onClick={onLikeToggle}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onLikeToggle?.()
+                }}
                 className="flex items-center gap-1.5 text-white/80 hover:text-coral transition-colors"
               >
                 <Heart className={`w-6 h-6 ${listing?._liked ? 'fill-coral text-coral' : ''}`} />
@@ -210,7 +236,10 @@ export default function ImageLightboxModal({
 
             {onShare && (
               <button
-                onClick={onShare}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onShare?.()
+                }}
                 className="flex items-center gap-1.5 text-white/80 hover:text-white transition-colors"
               >
                 <Share2 className="w-6 h-6" />
@@ -223,6 +252,7 @@ export default function ImageLightboxModal({
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand text-white font-semibold text-xs active:scale-95 transition-transform"
             >
               <Phone className="w-3.5 h-3.5" />
