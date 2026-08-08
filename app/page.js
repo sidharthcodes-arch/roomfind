@@ -93,6 +93,11 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
   const ownerName = listing.users?.full_name ?? 'Owner'
   const ownerInitials = initials(ownerName)
 
+  useEffect(() => {
+    setLiked(listing._liked ?? false)
+    setLikeCount(listing._likeCount ?? 0)
+  }, [listing._liked, listing._likeCount])
+
   const handleCardClick = () => {
     router.push(`/listings/${listing.id}`)
   }
@@ -421,7 +426,21 @@ export default function HomePage() {
     setListings((prev) => replace ? enriched : [...prev, ...enriched])
   }, [buildQuery, user, userLat, userLng, activeFilter, radiusKm])
 
-  // Initial load / filter change
+  const handleLikeToggle = (listingId, isLiked) => {
+    setListings((prev) =>
+      prev.map((item) =>
+        item.id === listingId
+          ? {
+              ...item,
+              _liked: isLiked,
+              _likeCount: isLiked ? (item._likeCount ?? 0) + 1 : Math.max(0, (item._likeCount ?? 1) - 1),
+            }
+          : item
+      )
+    )
+  }
+
+  // Initial load / filter change / user auth resolution
   useEffect(() => {
     pageRef.current = 0
     setListings([])
@@ -429,7 +448,7 @@ export default function HomePage() {
     setFetchError(null)
     setLoading(true)
     fetchPage(0, true).finally(() => setLoading(false))
-  }, [activeFilter, radiusKm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilter, radiusKm, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Infinite scroll sentinel
   useEffect(() => {
@@ -531,6 +550,7 @@ export default function HomePage() {
                 key={listing.id}
                 listing={listing}
                 currentUserId={user?.id ?? null}
+                onLikeToggle={handleLikeToggle}
                 onShare={(l) => setShareListing(l)}
               />
             ))}
