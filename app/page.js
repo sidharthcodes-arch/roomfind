@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { filterByDistance } from '@/lib/utils'
@@ -80,6 +81,7 @@ async function copyTextToClipboard(text) {
 // ─── listing card ─────────────────────────────────────────────────────────────
 
 function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
+  const router = useRouter()
   const isTaken = listing.status === 'taken' || listing.status === 'booked' || listing.is_available === false
   const photos = listing.photos ?? []
   const [liked, setLiked] = useState(listing._liked ?? false)
@@ -90,6 +92,10 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
 
   const ownerName = listing.users?.full_name ?? 'Owner'
   const ownerInitials = initials(ownerName)
+
+  const handleCardClick = () => {
+    router.push(`/listings/${listing.id}`)
+  }
 
   const handleOpenLightbox = (index) => {
     setLightboxIndex(index)
@@ -127,7 +133,10 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
     : null
 
   return (
-    <article className="bg-white rounded-2xl overflow-hidden border border-black/[0.09] mb-3">
+    <article
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl overflow-hidden border border-black/[0.09] mb-3 cursor-pointer group hover:border-black/20 transition-colors"
+    >
       {/* Owner row */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
         <div className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center shrink-0 overflow-hidden">
@@ -150,7 +159,10 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
             {listing.area} · {timeAgo(listing.created_at)}
           </p>
         </div>
-        <button className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600">
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600"
+        >
           <span className="text-xl leading-none">···</span>
         </button>
       </div>
@@ -225,8 +237,11 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
         </div>
       </div>
 
-      {/* Action row */}
-      <div className="flex items-center px-3 py-1 border-t border-black/[0.05]">
+      {/* Action row (Avoided: Clicks here do NOT open detail page) */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex items-center px-3 py-1 border-t border-black/[0.05]"
+      >
         <button
           onClick={handleLike}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors hover:bg-slate-50"
@@ -253,15 +268,21 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
         </button>
 
         <button
-          onClick={() => setSaved((s) => !s)}
+          onClick={(e) => {
+            e.stopPropagation()
+            setSaved((s) => !s)
+          }}
           className="ml-auto flex items-center justify-center w-9 h-9 rounded-xl hover:bg-slate-50 transition-colors"
         >
           <Bookmark className={`w-5 h-5 ${saved ? 'fill-brand text-brand' : 'text-slate-400'}`} />
         </button>
       </div>
 
-      {/* CTA Section */}
-      <div className="px-4 pb-4 pt-1">
+      {/* CTA Section (Avoided: Clicks here do NOT open detail page) */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="px-4 pb-4 pt-1"
+      >
         {isTaken ? (
           <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-200 text-slate-500 font-semibold text-[14px] cursor-not-allowed select-none">
             Room no longer available
