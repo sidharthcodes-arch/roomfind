@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { filterByDistance } from '@/lib/utils'
 import ShareModal from '@/components/ShareModal'
+import TwitterImageGrid from '@/components/TwitterImageGrid'
+import ImageLightboxModal from '@/components/ImageLightboxModal'
 import { Bell, MapPin, Heart, MessageCircle, Share2, Bookmark, Plus, CheckCircle } from 'lucide-react'
 
 const PAGE_SIZE = 10
@@ -80,16 +82,25 @@ async function copyTextToClipboard(text) {
 function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
   const isTaken = listing.status === 'taken' || listing.status === 'booked' || listing.is_available === false
   const photos = listing.photos ?? []
-  const [photoIdx, setPhotoIdx] = useState(0)
   const [liked, setLiked] = useState(listing._liked ?? false)
   const [likeCount, setLikeCount] = useState(listing._likeCount ?? 0)
   const [saved, setSaved] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
   const ownerName = listing.users?.full_name ?? 'Owner'
   const ownerInitials = initials(ownerName)
 
+  const handleOpenLightbox = (index) => {
+    setLightboxIndex(index)
+    setIsLightboxOpen(true)
+  }
+
   const handleLike = async (e) => {
-    e.preventDefault()
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (!currentUserId) return
     const next = !liked
     setLiked(next)
@@ -104,8 +115,10 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
   }
 
   const handleShare = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     onShare?.(listing)
   }
 
@@ -142,54 +155,36 @@ function ListingCard({ listing, currentUserId, onLikeToggle, onShare }) {
         </button>
       </div>
 
-      {/* Photo */}
-      <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
-        {photos.length > 0 ? (
-          <img
-            src={photos[photoIdx]}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-            onError={(e) => { e.target.style.display = 'none' }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <MapPin className="w-10 h-10 text-slate-300" />
-          </div>
-        )}
+      {/* Twitter-Style Multi Image Grid */}
+      <div className="relative px-3">
+        <TwitterImageGrid
+          photos={photos}
+          onImageClick={handleOpenLightbox}
+        />
 
-        {/* Status + room type badges */}
-        <div className="absolute top-3 left-3 flex gap-1.5">
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+        {/* Status + room type badges overlay */}
+        <div className="absolute top-2.5 left-5 z-10 flex gap-1.5 pointer-events-none">
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm ${
             isTaken ? 'bg-slate-700 text-white' : 'bg-brand text-white'
           }`}>
             {isTaken ? 'Taken' : 'Available'}
           </span>
-          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-black/40 text-white capitalize">
+          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-sm capitalize">
             {listing.room_type}
           </span>
         </div>
-
-        {/* Photo count */}
-        {photos.length > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/50 text-white text-[11px] px-2 py-0.5 rounded-full">
-            {photoIdx + 1} / {photos.length}
-          </div>
-        )}
-
-        {/* Tap zones for photo nav */}
-        {photos.length > 1 && (
-          <>
-            <button
-              className="absolute left-0 top-0 w-1/2 h-full"
-              onClick={() => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length)}
-            />
-            <button
-              className="absolute right-0 top-0 w-1/2 h-full"
-              onClick={() => setPhotoIdx((i) => (i + 1) % photos.length)}
-            />
-          </>
-        )}
       </div>
+
+      {/* Twitter-Style Full Screen Lightbox Modal */}
+      <ImageLightboxModal
+        isOpen={isLightboxOpen}
+        photos={photos}
+        initialIndex={lightboxIndex}
+        listing={{ ...listing, _liked: liked, _likeCount: likeCount }}
+        onClose={() => setIsLightboxOpen(false)}
+        onLikeToggle={handleLike}
+        onShare={() => handleShare()}
+      />
 
       {/* Price + details */}
       <div className="px-4 pt-3 pb-2">

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import ShareModal from '@/components/ShareModal'
+import ImageLightboxModal from '@/components/ImageLightboxModal'
 
 const genderLabel = {
   any: 'Any gender',
@@ -70,6 +71,7 @@ export default function ListingDetailPage({ params }) {
   const [likeCount, setLikeCount] = useState(0)
   const [saved, setSaved] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [toast, setToast] = useState(null)
 
   const showToast = (message, type = 'success') => {
@@ -164,7 +166,7 @@ export default function ListingDetailPage({ params }) {
 
       {/* Photo carousel */}
       {photos.length > 0 ? (
-        <div className="relative bg-slate-900 aspect-[4/3] overflow-hidden">
+        <div className="relative bg-slate-900 aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
           <img src={photos[currentPhoto]} alt={`Photo ${currentPhoto + 1}`} className="w-full h-full object-cover" />
 
           {/* Status badge */}
@@ -385,6 +387,16 @@ export default function ListingDetailPage({ params }) {
         isOpen={isShareOpen}
         listing={listing}
         onClose={() => setIsShareOpen(false)}
+      />
+
+      <ImageLightboxModal
+        isOpen={isLightboxOpen}
+        photos={photos}
+        initialIndex={currentPhoto}
+        listing={{ ...listing, _liked: liked, _likeCount: likeCount }}
+        onClose={() => setIsLightboxOpen(false)}
+        onLikeToggle={handleLike}
+        onShare={() => setIsShareOpen(true)}
       />
     </div>
   )
