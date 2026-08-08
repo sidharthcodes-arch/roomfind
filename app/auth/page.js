@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { Home, Loader2, MapPin, CheckCircle, ArrowLeft, ShieldCheck, Heart, Sparkles } from 'lucide-react'
+import CountryPhoneInput from '@/components/CountryPhoneInput'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -34,6 +35,7 @@ export default function AuthPage() {
   }, [user, authLoading, step, router])
   
   const [fullName, setFullName] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [agreeTerms, setAgreeTerms] = useState(false)
@@ -103,6 +105,7 @@ export default function AuthPage() {
         id: pendingUserId,
         email: pendingEmail,
         full_name: fullName.trim() || null,
+        phone_number: phoneNumber.trim() || null,
         role
       }, { onConflict: 'id' })
       if (error) throw error
@@ -335,20 +338,33 @@ export default function AuthPage() {
               /* Auth Form */
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
-                {/* Full name input (Signup mode only) */}
+                {/* Full name & Phone Number inputs (Signup mode only) */}
                 {mode === 'signup' && (
-                  <div>
-                    <label className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ada Lovelace"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-black/[0.09] rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand bg-white text-slate-900"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ada Lovelace"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-black/[0.09] rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand bg-white text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                        Phone Number (WhatsApp)
+                      </label>
+                      <CountryPhoneInput
+                        value={phoneNumber}
+                        onChange={(val) => setPhoneNumber(val)}
+                        placeholder="9876543210"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* Email input */}
