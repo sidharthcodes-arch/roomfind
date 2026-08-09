@@ -54,12 +54,22 @@ function ListingItem({ listing, onDelete, onToggleStatus }) {
           </button>
         </div>
       </div>
-      <button
-        onClick={onDelete}
-        className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors shrink-0"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1 shrink-0">
+        <Link
+          href={`/edit-listing/${listing.id}`}
+          className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-brand-light hover:text-brand transition-colors"
+          title="Edit Listing"
+        >
+          <Pencil className="w-4 h-4" />
+        </Link>
+        <button
+          onClick={onDelete}
+          className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+          title="Delete Listing"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   )
 }

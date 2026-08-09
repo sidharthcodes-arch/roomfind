@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, MapPin, Phone, User, Home, Users, CheckCircle,
-  ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, Bookmark
+  ChevronLeft, ChevronRight, Heart, MessageCircle, Share2, Bookmark, Pencil
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import ShareModal from '@/components/ShareModal'
@@ -162,6 +162,15 @@ export default function ListingDetailPage({ params }) {
           <ArrowLeft className="w-4 h-4 text-slate-600" />
         </Link>
         <h1 className="font-semibold text-slate-900 text-[16px] line-clamp-1 flex-1">{listing.title}</h1>
+        {user?.id === listing.user_id && (
+          <Link
+            href={`/edit-listing/${listing.id}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-light text-brand text-xs font-semibold hover:bg-brand/20 transition-colors shrink-0"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Edit
+          </Link>
+        )}
       </div>
 
       {/* Photo carousel */}
