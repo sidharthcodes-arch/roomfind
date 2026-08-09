@@ -85,7 +85,8 @@ export default function CreateListingPage() {
     setIsLocating(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => { setLatitude(String(pos.coords.latitude)); setLongitude(String(pos.coords.longitude)); setIsLocating(false) },
-      () => { setIsLocating(false); showToast('Could not get location.') }
+      () => { setIsLocating(false); showToast('Could not get location.') },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
 

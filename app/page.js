@@ -338,7 +338,8 @@ export default function HomePage() {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => { setUserLat(pos.coords.latitude); setUserLng(pos.coords.longitude) },
-        () => {}
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       )
     }
   }, [])
