@@ -41,6 +41,7 @@ export default function CreateListingPage() {
   const [roomType, setRoomType] = useState('single')
   const [furnished, setFurnished] = useState(false)
   const [genderPreference, setGenderPreference] = useState('any')
+  const [status, setStatus] = useState('available')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [photoFiles, setPhotoFiles] = useState([])
@@ -119,6 +120,7 @@ export default function CreateListingPage() {
     try {
       await supabase.from('users').upsert({ id: user.id, email: user.email }, { onConflict: 'id', ignoreDuplicates: true })
       const photoUrls = photoFiles.length > 0 ? await uploadPhotos() : []
+      const isAvailable = status === 'available'
       const { error } = await supabase.from('listings').insert({
         title: title.trim(), description: description.trim() || null,
         price: Number(price), city: city.trim(), area: area.trim(),
@@ -126,7 +128,8 @@ export default function CreateListingPage() {
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
         room_type: roomType, furnished, gender_preference: genderPreference,
-        user_id: user.id, photos: photoUrls, is_available: true, status: 'available',
+        status, is_available: isAvailable,
+        user_id: user.id, photos: photoUrls,
       })
       if (error) throw error
       showToast('Listing posted! Your room is now live.', 'success')
@@ -179,6 +182,35 @@ export default function CreateListingPage() {
 
       <div className="px-3 pt-3">
         <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+
+          {/* Status availability toggle */}
+          <div className="bg-white rounded-2xl p-4 border border-black/[0.09] space-y-2">
+            <label className="block text-[13px] font-semibold text-slate-900">Listing Status</label>
+            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setStatus('available')}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  status === 'available'
+                    ? 'bg-brand text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                ✓ Available
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus('taken')}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  status === 'taken'
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                ✕ Marked Taken
+              </button>
+            </div>
+          </div>
 
           {/* Basic info */}
           <div className="bg-white rounded-2xl p-4 border border-black/[0.09] space-y-4">
