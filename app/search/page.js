@@ -9,7 +9,8 @@ import ShareModal from "@/components/ShareModal";
 import TwitterImageGrid from "@/components/TwitterImageGrid";
 import ImageLightboxModal from "@/components/ImageLightboxModal";
 import { parseQueryLocally } from "@/lib/searchParser";
-import { geocodeLocation } from "@/lib/mappls";
+import { geocodeLocation } from "@/lib/geoapify";
+import { fetchSuggestionsWithCache } from "@/lib/autosuggestCache";
 import {
   Search as SearchIcon,
   X,
@@ -48,14 +49,26 @@ function initials(name) {
     .toUpperCase();
 }
 
-const TABS = ["Top", "Latest", "Single", "Shared", "Furnished", "Under ₹10k"];
+const TABS = [
+  "Top",
+  "Latest",
+  "1BHK",
+  "2BHK",
+  "3BHK",
+  "Single",
+  "Shared",
+  "Furnished",
+  "Under ₹10k",
+];
 const TRENDING_LOCATIONS = [
+  "Court More",
+  "Darjeeling More",
+  "Airview More",
+  "Venus More",
+  "Pradhan Nagar",
   "Koramangala",
   "Indiranagar",
   "HSR Layout",
-  "Whitefield",
-  "BTM Layout",
-  "Jayanagar",
 ];
 
 function SearchCardSkeleton() {
@@ -109,98 +122,104 @@ function SearchResultCard({ listing, currentUserId, onLikeToggle, onShare }) {
     if (next) {
       await supabase
         .from("listing_likes")
-        .insert({ listing_id: listing.id, user_id: currentUserId });
+        .insert({ user_id: currentUserId, listing_id: listing.id });
     } else {
       await supabase
         .from("listing_likes")
         .delete()
-        .eq("listing_id", listing.id)
-        .eq("user_id", currentUserId);
+        .eq("user_id", currentUserId)
+        .eq("listing_id", listing.id);
     }
   };
 
-  const handleShare = (e) => {
+  const handleSave = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    onShare?.(listing);
+    setSaved((s) => !s);
   };
 
-  const whatsappHref = listing.users?.phone_number
-    ? `https://wa.me/${listing.users.phone_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I saw your listing "${listing.title}" on RoomFind. Is it still available?`)}`
+  const handleImageClick = (index) => {
+    setLightboxIndex(index);
+    setIsLightboxOpen(true);
+  };
+
+  const whatsappPhone = listing.users?.phone_number
+    ? listing.users.phone_number.replace(/\D/g, "")
+    : "";
+  const whatsappHref = whatsappPhone
+    ? `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
+        `Hi, I'm interested in your room listing "${listing.title}" on RoomFind.`,
+      )}`
     : null;
 
   return (
     <article
       onClick={() => router.push(`/listings/${listing.id}`)}
-      className="bg-white rounded-2xl border border-black/[0.09] mb-3 overflow-hidden shadow-xs cursor-pointer active:scale-[0.995] transition-transform"
+      className="bg-white rounded-2xl border border-black/[0.09] p-4 mb-3 transition-shadow hover:shadow-md cursor-pointer relative"
     >
-      {/* Header Info */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <div className="w-10 h-10 rounded-full bg-brand-light flex items-center justify-center shrink-0 overflow-hidden border border-black/5">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2.5 min-w-0">
           {listing.users?.profile_photo ? (
             <img
               src={listing.users.profile_photo}
-              alt=""
-              className="w-full h-full object-cover rounded-full"
+              alt={ownerName}
+              className="w-9 h-9 rounded-full object-cover shrink-0 border border-black/[0.08]"
             />
           ) : (
-            <span className="text-brand font-bold text-sm">
+            <div className="w-9 h-9 rounded-full bg-brand text-white font-bold text-[12px] flex items-center justify-center shrink-0">
               {ownerInitials}
-            </span>
+            </div>
           )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-[14px] text-slate-900 truncate">
-              {ownerName}
-            </span>
-            <span className="flex items-center gap-0.5 text-[11px] font-medium text-brand bg-brand-light px-1.5 py-0.5 rounded-full shrink-0">
-              <CheckCircle className="w-3 h-3" />
-              Owner
+          <div className="min-w-0">
+            <div className="flex items-center gap-1">
+              <span className="font-semibold text-slate-900 text-[13.5px] truncate">
+                {ownerName}
+              </span>
+              <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0 fill-brand/10" />
+            </div>
+            <span className="text-[11px] text-slate-400 block">
+              {timeAgo(listing.created_at)}
             </span>
           </div>
-          <span className="text-[12px] text-slate-400">
-            {timeAgo(listing.created_at)}
-          </span>
         </div>
 
-        {/* Distance Badge if available */}
-        {typeof listing.distance_km === "number" && (
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full shrink-0">
-            <Navigation className="w-3 h-3 fill-emerald-600 text-emerald-600" />
-            {listing.distance_km < 1
-              ? `${Math.round(listing.distance_km * 1000)}m away`
-              : `${listing.distance_km.toFixed(1)}km away`}
-          </span>
-        )}
-      </div>
-
-      {/* Media Display */}
-      <div className="relative px-3" onClick={(e) => e.stopPropagation()}>
-        <TwitterImageGrid
-          photos={photos}
-          onImageClick={(idx) => {
-            setLightboxIndex(idx);
-            setIsLightboxOpen(true);
-          }}
-        />
-        <div className="absolute top-2.5 left-5 z-[1] flex gap-1.5 pointer-events-none">
+        <div className="flex items-center gap-1.5 shrink-0">
           <span
-            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm ${
-              isTaken ? "bg-slate-700 text-white" : "bg-brand text-white"
+            className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+              isTaken
+                ? "bg-slate-100 text-slate-500 border-slate-200"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
             }`}
           >
             {isTaken ? "Taken" : "Available"}
           </span>
-          <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-sm capitalize">
-            {listing.room_type}
-          </span>
+
+          <button
+            onClick={handleSave}
+            className={`p-1.5 rounded-full hover:bg-slate-100 transition-colors ${
+              saved ? "text-brand" : "text-slate-400"
+            }`}
+          >
+            <Bookmark
+              className="w-4 h-4"
+              fill={saved ? "currentColor" : "none"}
+            />
+          </button>
         </div>
       </div>
 
-      {/* Lightbox Modal */}
+      {photos.length > 0 ? (
+        <div className="mb-3 rounded-xl overflow-hidden">
+          <TwitterImageGrid photos={photos} onImageClick={handleImageClick} />
+        </div>
+      ) : (
+        <div className="w-full h-48 bg-slate-100 rounded-xl mb-3 flex items-center justify-center text-slate-400 text-[13px]">
+          No photos available
+        </div>
+      )}
+
       {isLightboxOpen && (
         <ImageLightboxModal
           photos={photos}
@@ -209,113 +228,95 @@ function SearchResultCard({ listing, currentUserId, onLikeToggle, onShare }) {
         />
       )}
 
-      {/* Listing Details */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-baseline gap-1 mb-1">
-          <span className="text-[22px] font-bold text-slate-900">
-            ₹{Number(listing.price).toLocaleString("en-IN")}
-          </span>
-          <span className="text-[13px] text-slate-400">/month</span>
-        </div>
-        <p className="text-[14px] text-slate-700 font-medium line-clamp-1 mb-1">
-          {listing.title}
-        </p>
-        <div className="flex items-center gap-1 mb-2">
-          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="text-[12px] text-slate-500 truncate">
-            {listing.area}, {listing.city}
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {listing.furnished && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-              Furnished
+      <div className="space-y-1 mb-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="font-bold text-slate-900 text-[16px] truncate">
+            {listing.title}
+          </h3>
+          <div className="text-right shrink-0">
+            <span className="text-[17px] font-extrabold text-brand">
+              ₹{Number(listing.price).toLocaleString("en-IN")}
             </span>
-          )}
-          {listing.gender_preference && listing.gender_preference !== "any" && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium capitalize">
-              {listing.gender_preference === "male"
-                ? "Male only"
-                : "Female preferred"}
-            </span>
-          )}
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-            No Brokerage
-          </span>
-        </div>
-      </div>
-
-      {/* Card Actions */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex items-center px-3 py-1 border-t border-black/[0.05]"
-      >
-        <button
-          onClick={handleLike}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors hover:bg-slate-50"
-        >
-          <Heart
-            className={`w-5 h-5 transition-colors ${liked ? "fill-coral text-coral" : "text-slate-400"}`}
-          />
-          <span
-            className={`text-[13px] font-medium ${liked ? "text-coral" : "text-slate-500"}`}
-          >
-            {likeCount}
-          </span>
-        </button>
-        <Link
-          href={`/listings/${listing.id}#comments`}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"
-        >
-          <MessageCircle className="w-5 h-5 text-slate-400" />
-          <span className="text-[13px] font-medium text-slate-500">
-            {listing._commentCount ?? 0}
-          </span>
-        </Link>
-        <button
-          onClick={handleShare}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors"
-        >
-          <Share2 className="w-5 h-5 text-slate-400" />
-          <span className="text-[13px] font-medium text-slate-500">Share</span>
-        </button>
-        <button
-          onClick={() => setSaved((s) => !s)}
-          className="ml-auto flex items-center justify-center w-9 h-9 rounded-xl hover:bg-slate-50 transition-colors"
-        >
-          <Bookmark
-            className={`w-5 h-5 ${saved ? "fill-brand text-brand" : "text-slate-400"}`}
-          />
-        </button>
-      </div>
-
-      {/* Contact Owner WhatsApp CTA */}
-      <div className="px-3 pb-3" onClick={(e) => e.stopPropagation()}>
-        {isTaken ? (
-          <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-100 text-slate-400 font-medium text-[13px] select-none">
-            Room no longer available
+            <span className="text-[11px] text-slate-400 font-normal">/mo</span>
           </div>
-        ) : whatsappHref ? (
+        </div>
+
+        <div className="flex items-center gap-1 text-[12px] text-slate-500">
+          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="truncate">{listing.address}</span>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
+          {listing.bhk_type && (
+            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[11px] font-bold">
+              {listing.bhk_type}
+            </span>
+          )}
+          {listing.room_type && (
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium capitalize">
+              {listing.room_type} Occupancy
+            </span>
+          )}
+          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium">
+            {listing.furnished ? "Furnished" : "Unfurnished"}
+          </span>
+          {listing.gender_preference && listing.gender_preference !== "all" && (
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium capitalize">
+              {listing.gender_preference} Preferred
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-black/[0.06] pt-3 mt-2">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-rose-500 transition-colors text-[12.5px] font-medium"
+          >
+            <Heart
+              className={`w-4 h-4 ${
+                liked ? "fill-rose-500 text-rose-500" : ""
+              }`}
+            />
+            <span>{likeCount}</span>
+          </button>
+
+          <Link
+            href={`/listings/${listing.id}#comments`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors text-[12.5px] font-medium"
+          >
+            <MessageCircle className="w-4 h-4 text-slate-400" />
+            <span>{listing._commentCount ?? 0}</span>
+          </Link>
+
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onShare?.(listing);
+            }}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors text-[12.5px] font-medium"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>Share</span>
+          </button>
+        </div>
+
+        {whatsappHref ? (
           <a
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-brand text-white font-semibold text-[13px] active:opacity-90 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white font-semibold text-[12px] hover:bg-emerald-600 transition-colors"
           >
-            <svg
-              className="w-4 h-4 fill-white"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
-            Contact on WhatsApp
+            <MessageCircle className="w-3.5 h-3.5 fill-white" />
+            <span>WhatsApp</span>
           </a>
         ) : (
-          <div className="flex items-center justify-center w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 font-semibold text-[13px] border border-black/[0.05] select-none">
-            Available (No Contact Phone Listed)
-          </div>
+          <span className="text-[11px] text-slate-400 italic">No contact</span>
         )}
       </div>
     </article>
@@ -323,7 +324,7 @@ function SearchResultCard({ listing, currentUserId, onLikeToggle, onShare }) {
 }
 
 export default function SearchPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("Top");
 
@@ -332,6 +333,11 @@ export default function SearchPage() {
   const [genderFilter, setGenderFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
+  // AutoSuggest Dropdown State
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const selectedSuggestionRef = useRef(null);
+
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -339,54 +345,149 @@ export default function SearchPage() {
   const [isAiParsing, setIsAiParsing] = useState(false);
   const [shareListing, setShareListing] = useState(null);
 
+  const [resolvedLocationName, setResolvedLocationName] = useState(null);
+
   const pageRef = useRef(0);
   const sentinelRef = useRef(null);
 
+  const searchQueryRef = useRef(searchQuery);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  // 350ms Debounced AutoSuggest Effect using Session Cache with Google-Style Hybrid Suggestions
+  useEffect(() => {
+    const term = searchQuery.trim();
+
+    // Ignore suggestion search if query contains complex search keywords
+    const isFilterQuery =
+      /\b(1bhk|2bhk|3bhk|under|below|near me|furnished|single|shared|\d+k)\b/i.test(
+        term,
+      );
+
+    if (term.length < 3 || isFilterQuery || selectedSuggestionRef.current) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      // Extract intent prefix (e.g. "rooms near" or "1bhk near") and location key (e.g. "courtmore")
+      const matchIntent = term.match(/^(.*?\b(near|in|around|at)\b)\s*(.*)$/i);
+      const intentPrefix = matchIntent ? matchIntent[1].trim() : "rooms near";
+      const locationKey =
+        matchIntent && matchIntent[3].trim() ? matchIntent[3].trim() : term;
+
+      const rawResults = await fetchSuggestionsWithCache(locationKey);
+      if (rawResults.length > 0) {
+        const hybridList = [];
+        rawResults.slice(0, 3).forEach((item) => {
+          const name =
+            item.placeName ||
+            item.locationName ||
+            item.placeAddress ||
+            (typeof item === "string" ? item : "");
+          if (!name) return;
+
+          hybridList.push({
+            type: "query",
+            displayQuery: `${intentPrefix} ${name}`,
+            locationName: name,
+            placeName: name,
+          });
+          hybridList.push({
+            type: "location",
+            displayQuery: name,
+            locationName: name,
+            placeName: name,
+          });
+        });
+
+        setSuggestions(hybridList);
+        setShowDropdown(true);
+      } else {
+        setSuggestions([]);
+        setShowDropdown(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectSuggestion = (suggestion) => {
+    const locName =
+      typeof suggestion === "string"
+        ? suggestion
+        : suggestion.locationName || suggestion.placeName;
+    const dispQuery =
+      typeof suggestion === "string"
+        ? suggestion
+        : suggestion.displayQuery || locName;
+    selectedSuggestionRef.current = locName;
+    setSearchQuery(dispQuery);
+    setShowDropdown(false);
+    setSuggestions([]);
+    fetchPage(0, true, locName);
+  };
+
   const fetchPage = useCallback(
-    async (page, replace = false) => {
+    async (page, replace = false, customQuery = null) => {
+      if (replace) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       const from = page * PAGE_SIZE;
 
       let targetLat = null;
       let targetLng = null;
       let aiFilters = {};
+      let userGps = null;
 
-      const term = searchQuery.trim();
+      // Try quick device GPS check to power Proximity Bias
+      if (typeof window !== "undefined" && navigator.geolocation) {
+        try {
+          const pos = await new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              () => resolve(null),
+              { timeout: 2000 },
+            );
+          });
+          if (pos && pos.coords) {
+            userGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          }
+        } catch (_) {}
+      }
+
+      const term = (customQuery ?? searchQueryRef.current ?? "").trim();
 
       if (term) {
-        const local = parseQueryLocally(term);
-
-        if (local.isSimple) {
-          if (local.isNearMe) {
-            try {
-              const pos = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                  timeout: 5000,
-                });
-              });
-              targetLat = pos.coords.latitude;
-              targetLng = pos.coords.longitude;
-            } catch (err) {
-              targetLat = 12.9716;
-              targetLng = 77.5946;
-            }
-          } else if (local.location) {
-            const coords = await geocodeLocation(local.location);
-            if (coords) {
-              targetLat = coords.lat;
-              targetLng = coords.lng;
-            }
+        // Path 1: Direct Suggestion Selected (Bypasses AI completely)
+        if (selectedSuggestionRef.current) {
+          const coords = await geocodeLocation(
+            selectedSuggestionRef.current,
+            userGps,
+          );
+          if (coords) {
+            targetLat = coords.lat;
+            targetLng = coords.lng;
+            setResolvedLocationName(
+              coords.formatted || selectedSuggestionRef.current,
+            );
           }
+          selectedSuggestionRef.current = null;
         } else {
-          try {
-            setIsAiParsing(true);
-            const aiRes = await fetch("/api/search/parse", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: term }),
-            });
-            if (aiRes.ok) {
-              aiFilters = await aiRes.json();
-              if (aiFilters.is_near_me) {
+          // Path 2: Check Local Pattern Parser
+          const local = parseQueryLocally(term);
+
+          if (local.isSimple) {
+            if (local.isNearMe) {
+              setResolvedLocationName("Your Current Location");
+              if (userGps) {
+                targetLat = userGps.lat;
+                targetLng = userGps.lng;
+              } else {
                 try {
                   const pos = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -395,23 +496,74 @@ export default function SearchPage() {
                   });
                   targetLat = pos.coords.latitude;
                   targetLng = pos.coords.longitude;
-                } catch (_) {
-                  // Geolocation error
-                }
-              } else if (aiFilters.location) {
-                const coords = await geocodeLocation(aiFilters.location);
-                if (coords) {
-                  targetLat = coords.lat;
-                  targetLng = coords.lng;
+                } catch (err) {
+                  targetLat = 12.9716;
+                  targetLng = 77.5946;
                 }
               }
+            } else if (local.location) {
+              const coords = await geocodeLocation(local.location, userGps);
+              if (coords) {
+                targetLat = coords.lat;
+                targetLng = coords.lng;
+                setResolvedLocationName(coords.formatted || local.location);
+              }
             }
-          } catch (e) {
-            console.error("AI parsing error:", e);
-          } finally {
-            setIsAiParsing(false);
+          } else {
+            // Path 3: Groq AI Natural Language Parsing
+            try {
+              setIsAiParsing(true);
+              const aiRes = await fetch("/api/search/parse", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: term }),
+              });
+
+              if (aiRes.ok) {
+                aiFilters = await aiRes.json();
+                if (aiFilters.is_near_me) {
+                  setResolvedLocationName("Your Current Location");
+                  if (userGps) {
+                    targetLat = userGps.lat;
+                    targetLng = userGps.lng;
+                  } else {
+                    try {
+                      const pos = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                          resolve,
+                          reject,
+                          {
+                            timeout: 5000,
+                          },
+                        );
+                      });
+                      targetLat = pos.coords.latitude;
+                      targetLng = pos.coords.longitude;
+                    } catch (_) {}
+                  }
+                } else if (aiFilters.location) {
+                  const coords = await geocodeLocation(
+                    aiFilters.location,
+                    userGps,
+                  );
+                  if (coords) {
+                    targetLat = coords.lat;
+                    targetLng = coords.lng;
+                    setResolvedLocationName(
+                      coords.formatted || aiFilters.location,
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              console.error("AI parsing error:", e);
+            } finally {
+              setIsAiParsing(false);
+            }
           }
         }
+      } else {
+        setResolvedLocationName(null);
       }
 
       const effectiveMaxPrice =
@@ -420,6 +572,15 @@ export default function SearchPage() {
           : maxPrice
             ? Number(maxPrice)
             : aiFilters.max_price || null;
+
+      const effectiveBhkType =
+        activeTab === "1BHK"
+          ? "1BHK"
+          : activeTab === "2BHK"
+            ? "2BHK"
+            : activeTab === "3BHK"
+              ? "3BHK"
+              : aiFilters.bhk_type || null;
 
       const effectiveRoomType =
         activeTab === "Single"
@@ -431,7 +592,7 @@ export default function SearchPage() {
       const effectiveFurnished =
         activeTab === "Furnished" || furnishedOnly
           ? true
-          : aiFilters.furnished ?? null;
+          : (aiFilters.furnished ?? null);
 
       const effectiveGender =
         genderFilter !== "all"
@@ -448,11 +609,31 @@ export default function SearchPage() {
             page_size: PAGE_SIZE,
             max_price_filter: effectiveMaxPrice,
             room_type_filter: effectiveRoomType,
+            bhk_type_filter: effectiveBhkType,
             furnished_filter: effectiveFurnished,
             gender_filter: effectiveGender,
           });
-          if (!error && data) {
+          if (!error && data && data.length > 0) {
             fetchedListings = data;
+          } else {
+            // Fallback retry: Call proximity RPC without restrictive filters so location matches always take precedence
+            const { data: relaxedData } = await supabase.rpc(
+              "get_nearby_listings",
+              {
+                search_lat: targetLat,
+                search_lng: targetLng,
+                page_offset: from,
+                page_size: PAGE_SIZE,
+                max_price_filter: null,
+                room_type_filter: null,
+                bhk_type_filter: null,
+                furnished_filter: null,
+                gender_filter: "all",
+              },
+            );
+            if (relaxedData && relaxedData.length > 0) {
+              fetchedListings = relaxedData;
+            }
           }
         }
 
@@ -463,31 +644,32 @@ export default function SearchPage() {
             .order("created_at", { ascending: false })
             .range(from, from + PAGE_SIZE - 1);
 
+          if (effectiveBhkType) q = q.ilike("bhk_type", effectiveBhkType);
           if (effectiveRoomType) q = q.eq("room_type", effectiveRoomType);
           if (effectiveFurnished) q = q.eq("furnished", true);
           if (effectiveMaxPrice) q = q.lte("price", effectiveMaxPrice);
           if (effectiveGender !== "all")
             q = q.eq("gender_preference", effectiveGender);
 
-          const { data: fallbackData } = await q;
-          fetchedListings = fallbackData ?? [];
+          const { data, error } = await q;
+          if (!error && data) {
+            fetchedListings = data;
+          }
         }
       } catch (err) {
-        console.error("RPC search query error:", err);
+        console.error("Fetch page error:", err);
       }
 
-      const ids = fetchedListings.map((l) => l.id);
-      let likesData = [],
-        userLikes = [],
-        commentsData = [];
-      if (ids.length > 0) {
+      if (fetchedListings.length > 0) {
+        const ids = fetchedListings.map((l) => l.id);
+        let likesData = [], userLikes = [], commentsData = [];
         try {
           const [likesRes, userLikesRes, commentsRes] = await Promise.all([
             supabase
               .from("listing_likes")
               .select("listing_id")
               .in("listing_id", ids),
-            user
+            user?.id
               ? supabase
                   .from("listing_likes")
                   .select("listing_id")
@@ -503,76 +685,56 @@ export default function SearchPage() {
           userLikes = userLikesRes.data ?? [];
           commentsData = commentsRes.data ?? [];
         } catch (_) {}
+
+        const likeCountMap = {};
+        const userLikeSet = new Set(userLikes.map((l) => l.listing_id));
+        const commentCountMap = {};
+        likesData.forEach((l) => {
+          likeCountMap[l.listing_id] = (likeCountMap[l.listing_id] ?? 0) + 1;
+        });
+        commentsData.forEach((l) => {
+          commentCountMap[l.listing_id] =
+            (commentCountMap[l.listing_id] ?? 0) + 1;
+        });
+
+        fetchedListings = fetchedListings.map((l) => ({
+          ...l,
+          _liked: userLikeSet.has(l.id),
+          _likeCount: likeCountMap[l.id] ?? 0,
+          _commentCount: commentCountMap[l.id] ?? 0,
+        }));
       }
 
-      const likeCountMap = {};
-      const userLikeSet = new Set(userLikes.map((l) => l.listing_id));
-      const commentCountMap = {};
-      likesData.forEach((l) => {
-        likeCountMap[l.listing_id] = (likeCountMap[l.listing_id] ?? 0) + 1;
-      });
-      commentsData.forEach((l) => {
-        commentCountMap[l.listing_id] =
-          (commentCountMap[l.listing_id] ?? 0) + 1;
-      });
-
-      const enriched = fetchedListings.map((l) => ({
-        ...l,
-        _liked: userLikeSet.has(l.id),
-        _likeCount: likeCountMap[l.id] ?? 0,
-        _commentCount: commentCountMap[l.id] ?? 0,
-      }));
+      if (replace) {
+        setListings(fetchedListings);
+      } else {
+        setListings((prev) => [...prev, ...fetchedListings]);
+      }
 
       setHasMore(fetchedListings.length === PAGE_SIZE);
-      setListings((prev) => (replace ? enriched : [...prev, ...enriched]));
+      setLoading(false);
+      setLoadingMore(false);
     },
-    [searchQuery, activeTab, maxPrice, furnishedOnly, genderFilter, user],
+    [activeTab, maxPrice, furnishedOnly, genderFilter, user?.id],
   );
 
   useEffect(() => {
+    if (authLoading) return;
     pageRef.current = 0;
-    setListings([]);
-    setHasMore(true);
     setLoading(true);
-
-    const timer = setTimeout(() => {
-      fetchPage(0, true).finally(() => setLoading(false));
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [
-    searchQuery,
-    activeTab,
-    maxPrice,
-    furnishedOnly,
-    genderFilter,
-    fetchPage,
-  ]);
-
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      async ([entry]) => {
-        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
-          setLoadingMore(true);
-          pageRef.current += 1;
-          await fetchPage(pageRef.current);
-          setLoadingMore(false);
-        }
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, loading, fetchPage]);
+    fetchPage(0, true);
+  }, [activeTab, maxPrice, furnishedOnly, genderFilter, user?.id, authLoading]);
 
   const handleResetFilters = () => {
-    setSearchQuery("");
-    setActiveTab("Top");
     setMaxPrice("");
     setFurnishedOnly(false);
     setGenderFilter("all");
+  };
+
+  const handleTrendingClick = (locationName) => {
+    selectedSuggestionRef.current = locationName;
+    setSearchQuery(locationName);
+    fetchPage(0, true);
   };
 
   const activeFilterCount =
@@ -593,7 +755,16 @@ export default function SearchPage() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                selectedSuggestionRef.current = null;
+                setSearchQuery(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setShowDropdown(false);
+                  fetchPage(0, true);
+                }
+              }}
               placeholder={
                 isAiParsing
                   ? "AI Understanding query..."
@@ -603,13 +774,82 @@ export default function SearchPage() {
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setShowDropdown(false);
+                  selectedSuggestionRef.current = null;
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-300"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
+
+            {/* Google-Style AutoSuggest Location Dropdown */}
+            {showDropdown && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-black/[0.1] rounded-2xl shadow-xl z-50 overflow-hidden max-h-72 overflow-y-auto divide-y divide-black/[0.04]">
+                {suggestions.map((item, idx) => {
+                  const isQueryItem = item.type === "query";
+                  const placeName =
+                    item.placeName ||
+                    item.locationName ||
+                    item.placeAddress ||
+                    (typeof item === "string" ? item : "");
+                  const displayQuery = item.displayQuery || placeName;
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectSuggestion(item)}
+                      className="w-full px-4 py-3 text-left text-[13px] text-slate-800 hover:bg-slate-50 flex items-center gap-3 transition-colors group"
+                    >
+                      {isQueryItem ? (
+                        <SearchIcon className="w-4 h-4 text-slate-400 group-hover:text-brand shrink-0 transition-colors" />
+                      ) : (
+                        <MapPin className="w-4 h-4 text-brand shrink-0" />
+                      )}
+                      <div className="flex-1 truncate">
+                        {isQueryItem ? (
+                          <span className="text-slate-900 font-medium">
+                            {displayQuery}
+                          </span>
+                        ) : (
+                          <span>
+                            <strong className="font-semibold text-slate-900">
+                              {placeName.split(",")[0]}
+                            </strong>
+                            <span className="text-slate-500 font-normal">
+                              {placeName.includes(",")
+                                ? placeName.substring(placeName.indexOf(","))
+                                : ""}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
+          {/* Dedicated Search Action Button */}
+          <button
+            onClick={() => {
+              setShowDropdown(false);
+              fetchPage(0, true);
+            }}
+            disabled={isAiParsing}
+            className="px-3.5 py-2.5 bg-brand text-white text-[13px] font-semibold rounded-full hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 shrink-0 shadow-sm disabled:opacity-50"
+          >
+            {isAiParsing ? (
+              <Sparkles className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <SearchIcon className="w-3.5 h-3.5" />
+            )}
+            <span className="text-[13px]">Search</span>
+          </button>
+
           <button
             onClick={() => setShowFilters((prev) => !prev)}
             className={`relative p-2.5 rounded-full border transition-colors flex items-center justify-center shrink-0 ${
@@ -626,6 +866,27 @@ export default function SearchPage() {
             )}
           </button>
         </div>
+
+        {/* Resolved Location Banner */}
+        {resolvedLocationName && (
+          <div className="mx-4 mt-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200/70 rounded-2xl flex items-center justify-between text-[12.5px] text-emerald-900 shadow-sm animate-fade-in">
+            <div className="flex items-center gap-2 truncate pr-2">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="truncate">
+                Showing rooms near{" "}
+                <strong className="font-semibold text-emerald-950">
+                  {resolvedLocationName}
+                </strong>
+              </span>
+            </div>
+            <button
+              onClick={() => setResolvedLocationName(null)}
+              className="text-slate-400 hover:text-slate-600 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         <div className="flex border-t border-black/[0.06] overflow-x-auto scrollbar-hide px-2">
           {TABS.map((tab) => (
@@ -687,94 +948,100 @@ export default function SearchPage() {
                 </select>
               </div>
 
-              <div className="flex items-end">
-                <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 border border-black/[0.09] rounded-xl w-full">
-                  <input
-                    type="checkbox"
-                    checked={furnishedOnly}
-                    onChange={(e) => setFurnishedOnly(e.target.checked)}
-                    className="w-4 h-4 rounded accent-brand"
-                  />
-                  <span className="text-[12px] font-medium text-slate-700">
-                    Furnished
-                  </span>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                  Furnishing
                 </label>
+                <button
+                  onClick={() => setFurnishedOnly((prev) => !prev)}
+                  className={`w-full py-2 px-3 rounded-xl border text-[12px] font-medium transition-colors ${
+                    furnishedOnly
+                      ? "bg-brand text-white border-brand"
+                      : "bg-white text-slate-700 border-black/[0.09]"
+                  }`}
+                >
+                  {furnishedOnly ? "Furnished Only" : "Any Furnishing"}
+                </button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="px-4 py-2.5 bg-white border-b border-black/[0.06] flex items-center gap-2 overflow-x-auto scrollbar-hide">
-        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
-          <TrendingUp className="w-3.5 h-3.5 text-brand" /> Trending:
-        </span>
-        {TRENDING_LOCATIONS.map((loc) => (
-          <button
-            key={loc}
-            onClick={() => setSearchQuery(loc)}
-            className="shrink-0 text-[12px] px-3 py-1 rounded-full bg-slate-100 hover:bg-brand-light hover:text-brand text-slate-600 transition-colors font-medium"
-          >
-            {loc}
-          </button>
-        ))}
+      {/* Trending Locations Chips */}
+      <div className="px-4 py-3 border-b border-black/[0.05] bg-white/50">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+          <TrendingUp className="w-3.5 h-3.5 text-brand" />
+          <span>Trending Areas</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TRENDING_LOCATIONS.map((loc) => (
+            <button
+              key={loc}
+              onClick={() => handleTrendingClick(loc)}
+              className="px-2.5 py-1 bg-white border border-black/[0.08] rounded-full text-[12px] font-medium text-slate-700 hover:border-brand hover:text-brand transition-colors shadow-2xs"
+            >
+              {loc}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="px-3 pt-3">
+      <main className="p-4">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <SearchCardSkeleton key={i} />
-          ))
-        ) : listings.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-black/[0.09] p-8 text-center my-4 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-              <SearchIcon className="w-6 h-6" />
-            </div>
-            <h2 className="font-bold text-slate-900 text-[16px]">
-              No rooms found
-            </h2>
-            <p className="text-slate-500 text-[13px] max-w-xs mx-auto">
-              We couldn't find any rooms matching your search parameters. Try
-              adjusting your search query or filters.
-            </p>
-            <button
-              onClick={handleResetFilters}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand/90 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Clear Search & Filters
-            </button>
-          </div>
-        ) : (
           <>
-            {listings.map((listing) => (
+            <SearchCardSkeleton />
+            <SearchCardSkeleton />
+            <SearchCardSkeleton />
+          </>
+        ) : listings.length > 0 ? (
+          <div>
+            {listings.map((item) => (
               <SearchResultCard
-                key={listing.id}
-                listing={listing}
-                currentUserId={user?.id ?? null}
+                key={item.id}
+                listing={item}
+                currentUserId={user?.id}
+                onLikeToggle={(id, liked) => {
+                  setListings((prev) =>
+                    prev.map((l) =>
+                      l.id === id
+                        ? {
+                            ...l,
+                            _liked: liked,
+                            _likeCount: (l._likeCount ?? 0) + (liked ? 1 : -1),
+                          }
+                        : l,
+                    ),
+                  );
+                }}
                 onShare={(l) => setShareListing(l)}
               />
             ))}
-
-            <div ref={sentinelRef} className="h-4" />
-            {loadingMore && (
-              <div className="flex justify-center py-4">
-                <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            {!hasMore && listings.length > 0 && (
-              <p className="text-center text-slate-400 text-[13px] py-4">
-                You've reached the end of search results
-              </p>
-            )}
-          </>
+          </div>
+        ) : (
+          <div className="py-12 text-center space-y-3 bg-white rounded-2xl border border-black/[0.09] p-6">
+            <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto">
+              <SearchIcon className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-[15px]">
+              No listings found
+            </h3>
+            <p className="text-[13px] text-slate-500 max-w-xs mx-auto">
+              Try adjusting your search filters or searching for another
+              location.
+            </p>
+          </div>
         )}
-      </div>
+      </main>
 
-      <ShareModal
-        isOpen={!!shareListing}
-        listing={shareListing}
-        onClose={() => setShareListing(null)}
-      />
+      {shareListing && (
+        <ShareModal
+          isOpen={!!shareListing}
+          onClose={() => setShareListing(null)}
+          title={shareListing.title}
+          url={typeof window !== "undefined" ? window.location.href : ""}
+        />
+      )}
     </div>
   );
 }
