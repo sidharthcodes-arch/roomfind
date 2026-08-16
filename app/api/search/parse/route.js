@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(req) {
+  let query = '';
   try {
-    const { query } = await req.json();
+    const body = await req.json();
+    query = body.query || '';
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
@@ -19,19 +21,28 @@ export async function POST(req) {
     const systemPrompt = `You are a smart search assistant for RoomFind, a rental housing mobile app in India.
 Extract structured search parameters from the user's natural language search input.
 
-CRITICAL INSTRUCTIONS:
-1. Extract "location": The specific place, landmark, neighborhood, or area name (e.g. "Koramangala", "HSR Layout", "Christ University"). Strip filler words like "near", "in", "around", "room", "flat", "looking for". If the user says "near me", set location to null and "is_near_me" to true.
-2. Extract "max_price": Number in INR (e.g. "15k" or "under 15000" -> 15000, "under 10k" -> 10000). Set to null if not mentioned.
-3. Extract "room_type": "single" if 1bhk/private/single, "shared" if sharing/roommate/flatmate/2bhk shared. Set to null if not specified.
-4. Extract "furnished": boolean true if "furnished" or "fully furnished" mentioned, else null.
-5. Extract "gender_preference": "female" if girl/female/women, "male" if boy/male/men, "all" if specified or null.
-6. Extract "is_near_me": boolean true if query explicitly asks for places "near me" or "around me".
+CRITICAL INSTRUCTIONS FOR LOCATION & BHK EXTRACTION:
+1. Extract "location": The complete specific place, landmark, neighborhood, colony, or area name mentioned. For local landmarks (e.g. "Court More", "Darjeeling More", "Airview More", "Venus More"), preserve the location name fully as "Court More Siliguri" or "Court More" so geocoding finds the correct neighborhood.
+2. Strip filler words like "room", "rooms", "flat", "looking for", "under", "place", "accommodation", "near". Generic words like "room" or "rooms" should NOT trigger a specific bhk_type filter unless explicitly specified.
+3. Extract "bhk_type": 
+   - "1BHK" if user mentions 1bhk / 1 bhk / one bhk
+   - "2BHK" if user mentions 2bhk / 2 bhk / two bhk
+   - "3BHK" if user mentions 3bhk / 3 bhk
+   - "1RK" if user mentions 1rk / 1 rk
+   - "Single Room" if user mentions single room / private room
+   - Otherwise set to null if not specified.
+4. Extract "room_type": "single" if private/single occupancy requested, "shared" if sharing/roommate/flatmate. Set to null if not specified.
+5. Extract "max_price": Number in INR (e.g. "15k" or "under 15000" -> 15000, "under 10k" -> 10000). Set to null if not mentioned.
+6. Extract "furnished": boolean true if "furnished" or "fully furnished" mentioned, else null.
+7. Extract "gender_preference": "female" if girl/female/women, "male" if boy/male/men, "all" if specified or null.
+8. Extract "is_near_me": boolean true if query explicitly asks for places "near me" or "around me".
 
 Return ONLY a single valid JSON object matching this schema EXACTLY:
 {
   "location": string | null,
-  "max_price": number | null,
+  "bhk_type": "1BHK" | "2BHK" | "3BHK" | "1RK" | "Single Room" | null,
   "room_type": "single" | "shared" | null,
+  "max_price": number | null,
   "furnished": boolean | null,
   "gender_preference": "female" | "male" | "all" | null,
   "is_near_me": boolean
@@ -55,14 +66,19 @@ Return ONLY a single valid JSON object matching this schema EXACTLY:
     });
 
     if (!groqResponse.ok) {
-      const errText = await groqResponse.text();
-      console.error('Groq API error:', errText);
+      console.error('Groq API HTTP error:', groqResponse.status);
       return NextResponse.json(fallbackParse(query));
     }
 
     const data = await groqResponse.json();
     const content = data.choices?.[0]?.message?.content;
     const parsed = JSON.parse(content);
+
+    // Fallback Check: If AI missed a multi-word location in original query, fall back to regex parser
+    const fallback = fallbackParse(query);
+    if (!parsed.location && fallback.location) {
+      parsed.location = fallback.location;
+    }
 
     return NextResponse.json(parsed);
   } catch (error) {
@@ -98,7 +114,8 @@ function fallbackParse(query) {
   // Clean location string
   let location = text
     .replace(/(?:under|below|max|<=)?\s*₹?\s*\d+(?:k)?/gi, '')
-    .replace(/\b(room|rooms|flat|pg|near|in|around|me|female|male|girl|girls|boy|boys|furnished|single|shared|sharing|1bhk|2bhk|under|looking for)\b/gi, '')
+    .replace(/\b(room|rooms|flat|pg|near|in|around|me|female|male|girl|girls|boy|boys|furnished|single|shared|sharing|1bhk|2bhk|3bhk|under|looking for)\b/gi, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
     .trim();
 
   return {
