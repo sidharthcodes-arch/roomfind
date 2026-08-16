@@ -38,6 +38,7 @@ export default function EditListingPage({ params }) {
   const [city, setCity] = useState('')
   const [area, setArea] = useState('')
   const [address, setAddress] = useState('')
+  const [bhkType, setBhkType] = useState('1BHK')
   const [roomType, setRoomType] = useState('single')
   const [furnished, setFurnished] = useState(false)
   const [genderPreference, setGenderPreference] = useState('any')
@@ -89,6 +90,7 @@ export default function EditListingPage({ params }) {
         setCity(data.city ?? '')
         setArea(data.area ?? '')
         setAddress(data.address ?? '')
+        setBhkType(data.bhk_type ?? '1BHK')
         setRoomType(data.room_type ?? 'single')
         setFurnished(Boolean(data.furnished))
         setGenderPreference(data.gender_preference ?? 'any')
@@ -194,6 +196,7 @@ export default function EditListingPage({ params }) {
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
         room_type: roomType,
+        bhk_type: bhkType,
         furnished,
         gender_preference: genderPreference,
         status,
@@ -344,7 +347,22 @@ export default function EditListingPage({ params }) {
             <h2 className="font-semibold text-slate-900 text-[15px]">Room details</h2>
 
             <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1">Room type</label>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1">BHK Configuration</label>
+              <select
+                value={bhkType}
+                onChange={(e) => setBhkType(e.target.value)}
+                className="w-full px-3 py-2.5 border border-black/[0.09] rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand bg-white"
+              >
+                <option value="1BHK">1 BHK</option>
+                <option value="2BHK">2 BHK</option>
+                <option value="3BHK">3 BHK</option>
+                <option value="1RK">1 RK</option>
+                <option value="Single Room">Single Room</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1">Occupancy Type</label>
               <select
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}

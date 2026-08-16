@@ -38,6 +38,7 @@ export default function CreateListingPage() {
   const [city, setCity] = useState('')
   const [area, setArea] = useState('')
   const [address, setAddress] = useState('')
+  const [bhkType, setBhkType] = useState('1BHK')
   const [roomType, setRoomType] = useState('single')
   const [furnished, setFurnished] = useState(false)
   const [genderPreference, setGenderPreference] = useState('any')
@@ -127,7 +128,7 @@ export default function CreateListingPage() {
         address: address.trim() || null,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
-        room_type: roomType, furnished, gender_preference: genderPreference,
+        room_type: roomType, bhk_type: bhkType, furnished, gender_preference: genderPreference,
         status, is_available: isAvailable,
         user_id: user.id, photos: photoUrls,
       })
@@ -248,7 +249,19 @@ export default function CreateListingPage() {
             <h2 className="font-semibold text-slate-900 text-[15px]">Room details</h2>
 
             <div>
-              <label className="block text-[13px] font-medium text-slate-700 mb-1">Room type</label>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1">BHK Configuration</label>
+              <select value={bhkType} onChange={(e) => setBhkType(e.target.value)}
+                className="w-full px-3 py-2.5 border border-black/[0.09] rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand bg-white">
+                <option value="1BHK">1 BHK</option>
+                <option value="2BHK">2 BHK</option>
+                <option value="3BHK">3 BHK</option>
+                <option value="1RK">1 RK</option>
+                <option value="Single Room">Single Room</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-medium text-slate-700 mb-1">Occupancy Type</label>
               <select value={roomType} onChange={(e) => setRoomType(e.target.value)}
                 className="w-full px-3 py-2.5 border border-black/[0.09] rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand bg-white">
                 <option value="single">Single</option>
