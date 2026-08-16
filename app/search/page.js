@@ -351,9 +351,97 @@ export default function SearchPage() {
   const sentinelRef = useRef(null);
 
   const searchQueryRef = useRef(searchQuery);
+  const userGpsRef = useRef(null);
+
   useEffect(() => {
     searchQueryRef.current = searchQuery;
   }, [searchQuery]);
+
+  // Mount-Time Non-Blocking Geolocation Prefetch & LocalStorage Cache with Coarse IP Fallback
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // 1. Instant hydration from localStorage (0 ms delay)
+    try {
+      const stored = localStorage.getItem("roomfind_user_gps");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours TTL
+        if (
+          parsed &&
+          parsed.lat &&
+          parsed.lng &&
+          Date.now() - (parsed.timestamp || 0) < MAX_AGE
+        ) {
+          userGpsRef.current = { lat: parsed.lat, lng: parsed.lng };
+        }
+      }
+    } catch (_) {}
+
+    // Helper to fetch coarse IP location if GPS is unavailable/denied
+    const fetchIpLocationFallback = async () => {
+      if (userGpsRef.current) return;
+      const geoapifyKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+      if (!geoapifyKey) return;
+      try {
+        const res = await fetch(
+          `https://api.geoapify.com/v1/ipinfo?apiKey=${geoapifyKey}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (
+            data &&
+            data.location &&
+            data.location.latitude &&
+            data.location.longitude
+          ) {
+            const ipData = {
+              lat: data.location.latitude,
+              lng: data.location.longitude,
+              isIpFallback: true,
+              timestamp: Date.now(),
+            };
+            userGpsRef.current = { lat: ipData.lat, lng: ipData.lng };
+            try {
+              localStorage.setItem(
+                "roomfind_user_gps",
+                JSON.stringify(ipData),
+              );
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    };
+
+    // 2. Non-blocking fresh GPS prefetch (decoupled from search execution)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (pos && pos.coords) {
+            const gpsData = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              isIpFallback: false,
+              timestamp: Date.now(),
+            };
+            userGpsRef.current = { lat: gpsData.lat, lng: gpsData.lng };
+            try {
+              localStorage.setItem(
+                "roomfind_user_gps",
+                JSON.stringify(gpsData),
+              );
+            } catch (_) {}
+          }
+        },
+        () => {
+          fetchIpLocationFallback();
+        },
+        { enableHighAccuracy: false, maximumAge: 300000, timeout: 5000 },
+      );
+    } else {
+      fetchIpLocationFallback();
+    }
+  }, []);
 
   // 350ms Debounced AutoSuggest Effect using Session Cache with Google-Style Hybrid Suggestions
   useEffect(() => {
@@ -378,7 +466,10 @@ export default function SearchPage() {
       const locationKey =
         matchIntent && matchIntent[3].trim() ? matchIntent[3].trim() : term;
 
-      const rawResults = await fetchSuggestionsWithCache(locationKey);
+      const rawResults = await fetchSuggestionsWithCache(
+        locationKey,
+        userGpsRef.current,
+      );
       if (rawResults.length > 0) {
         const hybridList = [];
         rawResults.slice(0, 3).forEach((item) => {
@@ -442,20 +533,17 @@ export default function SearchPage() {
       let targetLat = null;
       let targetLng = null;
       let aiFilters = {};
-      let userGps = null;
-
-      // Try quick device GPS check to power Proximity Bias
-      if (typeof window !== "undefined" && navigator.geolocation) {
+      // Zero-delay instant GPS reading from pre-loaded ref or localStorage cache
+      let userGps = userGpsRef.current;
+      if (!userGps && typeof window !== "undefined") {
         try {
-          const pos = await new Promise((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              () => resolve(null),
-              { timeout: 2000 },
-            );
-          });
-          if (pos && pos.coords) {
-            userGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const stored = localStorage.getItem("roomfind_user_gps");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed.lat && parsed.lng) {
+              userGps = { lat: parsed.lat, lng: parsed.lng };
+              userGpsRef.current = userGps;
+            }
           }
         } catch (_) {}
       }
