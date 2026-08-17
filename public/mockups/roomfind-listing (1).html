@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RoomFind — Listing detail</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50: '#e6f6ef',
+            100: '#c2ead8',
+            400: '#1fa971',
+            500: '#0f8a5a',
+            600: '#0b6e47',
+            700: '#095c3b',
+          }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+</style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-sm bg-gray-50 rounded-3xl shadow-xl overflow-hidden">
+
+    <!-- Top bar -->
+    <div class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+      <button class="text-gray-500 text-lg" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+      <h1 class="text-sm font-semibold text-gray-800">Cozy room in Darjeeling</h1>
+      <button class="flex items-center gap-1 text-xs font-medium text-brand-600 border border-brand-200 rounded-full px-3 py-1">
+        <i class="ti ti-pencil text-sm"></i> Edit
+      </button>
+    </div>
+
+    <div class="p-3 space-y-3">
+
+      <!-- Card 1: photo + owner + price + about + details + social -->
+      <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+
+        <!-- Photo -->
+        <div class="relative h-44 bg-gray-200 flex flex-col items-center justify-center text-gray-400">
+          <i class="ti ti-photo text-3xl"></i>
+          <span class="text-xs mt-1">Room photo</span>
+          <span class="absolute top-2.5 left-2.5 bg-emerald-100 text-emerald-700 text-xs font-medium px-3 py-1 rounded-full">Available</span>
+          <span class="absolute top-2.5 left-24 bg-white/90 text-gray-700 text-xs font-medium px-3 py-1 rounded-full">Single</span>
+          <span class="absolute top-2.5 right-2.5 bg-black/60 text-white text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1">
+            <i class="ti ti-map-pin text-sm"></i> 2.3 km away
+          </span>
+        </div>
+
+        <div class="p-4">
+          <!-- Owner -->
+          <div class="flex items-center gap-3 pb-3 border-b border-gray-100">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 shrink-0"></div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 truncate">Sidharth Pradhan</p>
+              <p class="text-xs text-gray-400 mt-0.5">Usually responds within an hour</p>
+            </div>
+            <span class="text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1 shrink-0">
+              <i class="ti ti-rosette-discount-check text-sm"></i> Owner
+            </span>
+          </div>
+
+          <!-- Price / title / location -->
+          <div class="py-3">
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-semibold text-gray-900">₹2,500 <span class="text-sm font-normal text-gray-500">/month</span></span>
+              <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">No broker</span>
+            </div>
+            <p class="text-base font-semibold text-gray-800 mt-1.5">Cozy room in Darjeeling</p>
+            <p class="text-sm text-gray-500 mt-1 flex items-center gap-1">
+              <i class="ti ti-map-pin text-sm"></i> Shantiparvat, below St. Joseph's college
+            </p>
+          </div>
+
+          <!-- About + details merged -->
+          <div class="pt-3 border-t border-gray-100">
+            <p class="text-sm text-gray-600 leading-relaxed mb-3">
+              This is a cozy test room in Darjeeling, close to the college and ropeway.
+            </p>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="bg-gray-50 rounded-lg p-2.5 text-center">
+                <i class="ti ti-home text-gray-400 text-lg"></i>
+                <p class="text-xs text-gray-400 mt-1">Type</p>
+                <p class="text-sm font-semibold text-gray-800">Single</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-2.5 text-center">
+                <i class="ti ti-armchair text-gray-400 text-lg"></i>
+                <p class="text-xs text-gray-400 mt-1">Furnished</p>
+                <p class="text-sm font-semibold text-gray-800">No</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-2.5 text-center">
+                <i class="ti ti-users text-gray-400 text-lg"></i>
+                <p class="text-xs text-gray-400 mt-1">Gender</p>
+                <p class="text-sm font-semibold text-gray-800">Any</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social row -->
+          <div class="flex items-center gap-4 pt-3 mt-3 border-t border-gray-100 text-gray-500 text-sm">
+            <button class="flex items-center gap-1 hover:text-rose-500"><i class="ti ti-heart text-base"></i> 2</button>
+            <button id="comment-toggle" onclick="toggleComments()" class="flex items-center gap-1 hover:text-gray-700">
+              <i class="ti ti-message-circle text-base"></i> Comment <span id="comment-count">(2)</span>
+            </button>
+            <button class="flex items-center gap-1 hover:text-gray-700"><i class="ti ti-share-3 text-base"></i> Share</button>
+            <button class="ml-auto hover:text-gray-700" aria-label="Save"><i class="ti ti-bookmark text-base"></i></button>
+          </div>
+
+          <!-- Comments panel: hidden until "Comment" is clicked -->
+          <div id="comments-panel" class="hidden pt-3 mt-3 border-t border-gray-100">
+            <div id="comments-list" class="space-y-3 max-h-40 overflow-y-auto pr-1">
+              <div class="flex items-start gap-2">
+                <div class="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                <div class="bg-gray-50 rounded-xl px-3 py-1.5 flex-1">
+                  <p class="text-xs font-semibold text-gray-700">Priya M.</p>
+                  <p class="text-sm text-gray-600">Is this still available for October?</p>
+                </div>
+              </div>
+              <div class="flex items-start gap-2">
+                <div class="w-7 h-7 rounded-full bg-gray-200 shrink-0"></div>
+                <div class="bg-gray-50 rounded-xl px-3 py-1.5 flex-1">
+                  <p class="text-xs font-semibold text-gray-700">Rahul S.</p>
+                  <p class="text-sm text-gray-600">How far is it from the market?</p>
+                </div>
+              </div>
+            </div>
+            <form id="comment-form" class="flex items-center gap-2 mt-3" onsubmit="return addComment(event)">
+              <input id="comment-input" type="text" placeholder="Add a comment"
+                     class="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none focus:border-emerald-400" />
+              <button type="submit" class="text-emerald-600 shrink-0" aria-label="Post comment">
+                <i class="ti ti-send text-lg"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: location -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-semibold text-gray-800">Location</p>
+          <span class="text-xs text-emerald-700 flex items-center gap-1">
+            <i class="ti ti-car text-sm"></i> 2.3 km · 8 min drive
+          </span>
+        </div>
+        <div class="relative h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center text-gray-400"
+             style="background-image: linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px); background-size: 16px 16px;">
+          <i class="ti ti-map-pin-filled text-2xl text-rose-500"></i>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold h-11 rounded-xl flex items-center justify-center gap-2 transition-colors">
+        <i class="ti ti-brand-whatsapp text-lg"></i> Contact on WhatsApp
+      </button>
+
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="grid grid-cols-4 border-t border-gray-100 bg-white py-2 text-gray-400 text-xs">
+      <div class="flex flex-col items-center gap-0.5 text-brand-600">
+        <i class="ti ti-home text-lg"></i> Home
+      </div>
+      <div class="flex flex-col items-center gap-0.5">
+        <i class="ti ti-search text-lg"></i> Search
+      </div>
+      <div class="flex flex-col items-center gap-0.5">
+        <i class="ti ti-bookmark text-lg"></i> Saved
+      </div>
+      <div class="flex flex-col items-center gap-0.5">
+        <i class="ti ti-user text-lg"></i> Profile
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleComments() {
+      document.getElementById('comments-panel').classList.toggle('hidden');
+    }
+
+    function addComment(e) {
+      e.preventDefault();
+      const input = document.getElementById('comment-input');
+      const text = input.value.trim();
+      if (!text) return false;
+
+      const list = document.getElementById('comments-list');
+      const row = document.createElement('div');
+      row.className = 'flex items-start gap-2';
+      row.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-emerald-100 shrink-0"></div>
+        <div class="bg-gray-50 rounded-xl px-3 py-1.5 flex-1">
+          <p class="text-xs font-semibold text-gray-700">You</p>
+          <p class="text-sm text-gray-600"></p>
+        </div>`;
+      row.querySelector('p.text-sm').textContent = text;
+      list.appendChild(row);
+      list.scrollTop = list.scrollHeight;
+
+      const countEl = document.getElementById('comment-count');
+      const current = parseInt(countEl.textContent.replace(/\D/g, ''), 10) || 0;
+      countEl.textContent = `(${current + 1})`;
+
+      input.value = '';
+      return false;
+    }
+  </script>
+</body>
+</html>

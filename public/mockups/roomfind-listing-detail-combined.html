@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoomFind — Master Listing Detail Mockup</title>
+  
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Tabler Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#e6f6ef',
+              100: '#c2ead8',
+              200: '#99debd',
+              400: '#1fa971',
+              500: '#0f8a5a',
+              600: '#0b6e47',
+              700: '#095c3b',
+            },
+            coral: '#D85A30',
+          },
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      color: #1e293b;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-dot {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-4 md:py-8 px-2 flex flex-col items-center justify-start text-slate-800">
+
+  <!-- Main Container / Header Notice -->
+  <div class="w-full max-w-md mb-3 flex items-center justify-between px-2 text-slate-300 text-xs">
+    <div class="flex items-center gap-1.5 font-medium">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span>RoomFind Unified Mockup v2.0</span>
+    </div>
+    <div class="flex gap-2">
+      <a href="./roomfind-listing.html" class="text-xs hover:text-emerald-400 underline transition-colors">Original #1</a>
+      <span class="text-slate-600">•</span>
+      <a href="./listing-detail-mockup.html" class="text-xs hover:text-emerald-400 underline transition-colors">Original #2</a>
+    </div>
+  </div>
+
+  <!-- Mobile App Frame Container -->
+  <div class="w-full max-w-md bg-gray-50 min-h-screen border border-slate-700/50 rounded-[32px] overflow-hidden shadow-2xl relative pb-28">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-200/80 px-4 py-3 flex items-center justify-between gap-2 shadow-xs">
+      <button onclick="window.history.back()" class="w-8.5 h-8.5 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors shrink-0" aria-label="Back">
+        <i class="ti ti-arrow-left text-lg"></i>
+      </button>
+
+      <div class="flex-1 min-w-0 px-1">
+        <h1 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Listing Details</h1>
+        <p class="text-sm font-bold text-gray-900 truncate leading-snug">Cozy Room near Kachari Road</p>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Edit listing button (Owner perspective feature) -->
+        <button class="flex items-center gap-1 text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 rounded-full px-3 py-1 hover:bg-brand-100 transition-colors">
+          <i class="ti ti-pencil text-sm"></i>
+          <span>Edit</span>
+        </button>
+        <!-- Share button -->
+        <button onclick="shareListing()" class="w-8.5 h-8.5 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors" aria-label="Share listing">
+          <i class="ti ti-share-3 text-base"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <div class="p-3 space-y-3.5">
+
+      <!-- MASTER UNIFIED LISTING CARD -->
+      <div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden space-y-0">
+
+        <!-- 2. HERO PHOTO CAROUSEL & BADGES -->
+        <div class="relative bg-gray-900 aspect-[4/3] overflow-hidden group">
+          <img id="mainPhoto" src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80" alt="Room Photo" class="w-full h-full object-cover transition-all duration-300" />
+          
+          <!-- Top Overlay Badges -->
+          <div class="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+            <span class="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1.5">
+              <i class="ti ti-circle-check-filled text-sm"></i> Available
+            </span>
+            <span class="bg-black/60 backdrop-blur-md text-white text-xs font-medium px-3 py-1 rounded-full border border-white/20">
+              Single Room
+            </span>
+          </div>
+
+          <!-- Distance Badge Overlay -->
+          <div class="absolute top-3 right-3 bg-black/65 backdrop-blur-md text-white text-xs font-medium px-3 py-1 rounded-full z-10 flex items-center gap-1.5 border border-white/20">
+            <i class="ti ti-map-pin text-emerald-400 text-xs"></i>
+            <span>2.3 km away</span>
+          </div>
+
+          <!-- Carousel Navigation Arrows -->
+          <button onclick="prevPhoto()" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-8.5 h-8.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-all z-10" aria-label="Previous photo">
+            <i class="ti ti-chevron-left text-lg"></i>
+          </button>
+          <button onclick="nextPhoto()" class="absolute right-2.5 top-1/2 -translate-y-1/2 w-8.5 h-8.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-all z-10" aria-label="Next photo">
+            <i class="ti ti-chevron-right text-lg"></i>
+          </button>
+
+          <!-- Counter & Indicator Dots Overlay -->
+          <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
+            <span class="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-0.5 rounded-md">
+              <span id="photoIndex">1</span> / 3 Photos
+            </span>
+
+            <div class="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+              <div id="dot0" class="w-4 h-1.5 rounded-full bg-white transition-all"></div>
+              <div id="dot1" class="w-1.5 h-1.5 rounded-full bg-white/50 transition-all"></div>
+              <div id="dot2" class="w-1.5 h-1.5 rounded-full bg-white/50 transition-all"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. INTERACTIVE THUMBNAIL STRIP -->
+        <div class="flex gap-2 px-3.5 py-2.5 overflow-x-auto scrollbar-hide bg-gray-50/60 border-b border-gray-100">
+          <button onclick="selectPhoto(0)" id="thumb0" class="shrink-0 w-15 h-11 rounded-lg overflow-hidden border-2 border-brand-500 ring-2 ring-brand-400/30 transition-all">
+            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=200&q=80" alt="Thumbnail 1" class="w-full h-full object-cover" />
+          </button>
+          <button onclick="selectPhoto(1)" id="thumb1" class="shrink-0 w-15 h-11 rounded-lg overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all">
+            <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=200&q=80" alt="Thumbnail 2" class="w-full h-full object-cover" />
+          </button>
+          <button onclick="selectPhoto(2)" id="thumb2" class="shrink-0 w-15 h-11 rounded-lg overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all">
+            <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=200&q=80" alt="Thumbnail 3" class="w-full h-full object-cover" />
+          </button>
+        </div>
+
+        <!-- INNER CONTENT BODY OF THE UNIFIED CARD -->
+        <div class="p-4 space-y-4">
+
+          <!-- 4. OWNER PROFILE ROW -->
+          <div class="flex items-center justify-between pb-3.5 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="w-11 h-11 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-300">
+                  SP
+                </div>
+                <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-gray-900 truncate">Sidharth Pradhan</span>
+                  <span class="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
+                    Owner
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                  Responds in ~1 hour
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. PRICE & TITLE SECTION -->
+          <div class="space-y-2">
+            <!-- Price header -->
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-1">
+                <span class="text-[28px] font-extrabold text-gray-900 tracking-tight">₹2,500</span>
+                <span class="text-sm text-gray-500 font-medium">/month</span>
+              </div>
+              <div class="flex gap-1.5">
+                <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full font-semibold">No Brokerage</span>
+              </div>
+            </div>
+
+            <!-- Title & Address -->
+            <div>
+              <h2 class="text-lg font-extrabold text-gray-900 leading-snug">cozy room in Darjeeling</h2>
+              <p class="text-[13px] text-gray-600 font-medium mt-1 flex items-start gap-1">
+                <i class="ti ti-map-pin text-brand-500 text-sm shrink-0 mt-0.5"></i>
+                <span>Shantiparvat below st.joseph college, shantiparvat, Darjeeling</span>
+              </p>
+            </div>
+
+            <!-- Short Description -->
+            <p class="text-sm leading-relaxed text-gray-700 pt-1">
+              this is a cozy test room in Darjeeling
+            </p>
+          </div>
+
+          <!-- 6. ROOM SPECIFICATIONS GRID -->
+          <div class="pt-1">
+            <div class="grid grid-cols-3 gap-2.5">
+              <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+                  <i class="ti ti-home text-base"></i>
+                </div>
+                <span class="text-xs text-gray-500 font-medium">Type</span>
+                <span class="text-sm font-bold text-gray-800">Single</span>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+                  <i class="ti ti-armchair text-base"></i>
+                </div>
+                <span class="text-xs text-gray-500 font-medium">Furnished</span>
+                <span class="text-sm font-bold text-gray-800">No</span>
+              </div>
+
+              <div class="bg-gray-50 rounded-xl p-3 border border-gray-100 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+                  <i class="ti ti-users text-base"></i>
+                </div>
+                <span class="text-xs text-gray-500 font-medium">Gender</span>
+                <span class="text-sm font-bold text-gray-800">Any</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7. SOCIAL ACTION BAR & COMMENTS PANEL -->
+          <div class="pt-2.5 border-t border-gray-100">
+            <div class="flex items-center justify-between text-gray-600 text-sm font-semibold">
+              <!-- Like Button -->
+              <button id="likeBtn" onclick="toggleLike()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+                <i id="likeIcon" class="ti ti-heart text-lg text-gray-400"></i>
+                <span id="likeCount" class="font-bold text-gray-700">2</span>
+              </button>
+
+              <!-- Comment Button -->
+              <button onclick="toggleComments()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-gray-50 text-gray-800 transition-colors">
+                <i class="ti ti-message-circle text-lg text-brand-600"></i>
+                <span>Comment</span>
+                <span id="commentCount" class="font-bold text-brand-600">(2)</span>
+              </button>
+
+              <!-- Share Button -->
+              <button onclick="shareListing()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors">
+                <i class="ti ti-share-3 text-lg text-gray-400"></i>
+                <span>Share</span>
+              </button>
+
+              <!-- Bookmark Button -->
+              <button id="bookmarkBtn" onclick="toggleBookmark()" class="p-2 rounded-xl hover:bg-gray-50 transition-colors ml-auto" aria-label="Bookmark">
+                <i id="bookmarkIcon" class="ti ti-bookmark text-lg text-gray-400"></i>
+              </button>
+            </div>
+
+            <!-- COLLAPSIBLE COMMENTS DRAWER PANEL -->
+            <div id="comments-panel" class="hidden pt-3.5 mt-2.5 border-t border-gray-100 space-y-3.5">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Community Discussion</h4>
+                <span class="text-xs text-gray-400">Ask the owner questions</span>
+              </div>
+
+              <!-- List of Comments -->
+              <div id="comments-list" class="space-y-3 max-h-56 overflow-y-auto pr-1">
+                <!-- Comment 1 -->
+                <div class="flex items-start gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-300">
+                    PM
+                  </div>
+                  <div class="bg-gray-50 border border-gray-100 rounded-2xl px-3.5 py-2.5 flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-bold text-gray-900">Priya M.</p>
+                      <span class="text-xs text-gray-400">1h ago</span>
+                    </div>
+                    <p class="text-[13.5px] text-gray-700 mt-0.5 leading-snug">Is this room still available for next month?</p>
+                  </div>
+                </div>
+
+                <!-- Comment 2 -->
+                <div class="flex items-start gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-300">
+                    RS
+                  </div>
+                  <div class="bg-gray-50 border border-gray-100 rounded-2xl px-3.5 py-2.5 flex-1">
+                    <div class="flex items-center justify-between">
+                      <p class="text-sm font-bold text-gray-900">Rahul S.</p>
+                      <span class="text-xs text-gray-400">30m ago</span>
+                    </div>
+                    <p class="text-[13.5px] text-gray-700 mt-0.5 leading-snug">How far is it walking distance from the main market?</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comment Input Box -->
+              <form onsubmit="addComment(event)" class="flex items-center gap-2 pt-1">
+                <input id="commentInput" type="text" placeholder="Ask a question or comment..." class="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-brand-500 transition-colors" />
+                <button type="submit" class="w-9 h-9 rounded-full bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95" aria-label="Post comment">
+                  <i class="ti ti-send text-base"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 8. LOCATION & INTERACTIVE MAP CARD (SEPARATE CARD BELOW) -->
+      <div class="bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-sm">
+        
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <i class="ti ti-map-pin text-lg"></i>
+            </div>
+            <h3 class="text-sm font-bold text-gray-900">Location</h3>
+          </div>
+
+          <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full flex items-center gap-1">
+            <i class="ti ti-car text-xs"></i> 40.0 km away
+          </span>
+        </div>
+
+        <!-- Address + Copy Button -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-start justify-between gap-2.5">
+            <div>
+              <p id="fullAddress" class="text-sm font-semibold text-gray-800 leading-snug">
+                Shantiparvat below st.joseph college, shantiparvat, Darjeeling
+              </p>
+            </div>
+            <button onclick="copyFullAddress()" class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors">
+              <i class="ti ti-copy text-xs"></i>
+              <span id="copyBtnLabel">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Google Maps Embed with Overlay Pin -->
+        <div class="relative bg-slate-100 aspect-[16/9] border-t border-b border-gray-100 overflow-hidden group">
+          <iframe 
+            src="https://maps.google.com/maps?q=27.0410,88.2663&z=15&output=embed" 
+            class="w-full h-full border-0 filter contrast-[1.02]" 
+            title="Listing Location Map" 
+            loading="lazy">
+          </iframe>
+
+          <!-- Marker Pin Overlay -->
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
+            <div class="bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1 animate-bounce">
+              <span>₹2,500/mo</span>
+            </div>
+            <div class="w-2.5 h-2.5 bg-brand-600 rotate-45 -mt-1.5 shadow-md"></div>
+          </div>
+        </div>
+
+        <!-- Action Directions -->
+        <div class="p-3.5 bg-gray-50 flex gap-2">
+          <a 
+            href="https://www.google.com/maps/dir/?api=1&destination=27.0410,88.2663" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm text-center flex items-center justify-center gap-2 transition-colors shadow-xs"
+          >
+            <i class="ti ti-navigation text-base"></i>
+            <span>Get Directions in Google Maps</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 10. STICKY MOBILE WHATSAPP CONTACT FOOTER -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-gray-200/80 p-3.5 px-4 flex items-center justify-between gap-3 z-40 shadow-2xl rounded-b-[32px]">
+      <div>
+        <span class="text-xs text-gray-400 font-medium block uppercase tracking-wider">Total Monthly Rent</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span class="text-2xl font-black text-gray-900">₹2,500</span>
+          <span class="text-xs text-gray-500 font-medium">/mo</span>
+        </div>
+      </div>
+
+      <a 
+        href="https://wa.me/919876543210?text=Hi%20Sidharth%2C%20I%20saw%20your%20listing%20Cozy%201BHK%20Room%20in%20Darjeeling%20on%20RoomFind.%20Is%20it%20available%3F" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="flex-1 max-w-[210px] flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold text-sm transition-all shadow-md"
+      >
+        <i class="ti ti-brand-whatsapp text-lg"></i>
+        <span>Contact Owner</span>
+      </a>
+    </div>
+
+    <!-- 11. BOTTOM NAVIGATION BAR -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 grid grid-cols-4 py-2 text-gray-400 text-[10px] font-medium z-30 hidden md:grid">
+      <div class="flex flex-col items-center gap-0.5 text-brand-600 font-bold">
+        <i class="ti ti-home text-base"></i> Home
+      </div>
+      <div class="flex flex-col items-center gap-0.5 hover:text-gray-700">
+        <i class="ti ti-search text-base"></i> Search
+      </div>
+      <div class="flex flex-col items-center gap-0.5 hover:text-gray-700">
+        <i class="ti ti-bookmark text-base"></i> Saved
+      </div>
+      <div class="flex flex-col items-center gap-0.5 hover:text-gray-700">
+        <i class="ti ti-user text-base"></i> Profile
+      </div>
+    </div>
+
+    <!-- 12. TOAST NOTIFICATION OVERLAY -->
+    <div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md text-white text-xs px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 z-50 transition-all border border-slate-700">
+      <i class="ti ti-circle-check text-emerald-400 text-base"></i>
+      <span id="toastMsg">Action completed</span>
+    </div>
+
+  </div>
+
+  <script>
+    // Carousel Photos
+    const photos = [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
+    ];
+    let current = 0;
+
+    function selectPhoto(index) {
+      current = index;
+      document.getElementById('mainPhoto').src = photos[current];
+      document.getElementById('photoIndex').innerText = current + 1;
+      
+      for (let i = 0; i < 3; i++) {
+        const dot = document.getElementById('dot' + i);
+        const thumb = document.getElementById('thumb' + i);
+        if (i === current) {
+          dot.className = 'w-4 h-1.5 rounded-full bg-white transition-all';
+          thumb.className = 'shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 border-brand-500 ring-2 ring-brand-400/30 transition-all';
+        } else {
+          dot.className = 'w-1.5 h-1.5 rounded-full bg-white/50 transition-all';
+          thumb.className = 'shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 border-transparent hover:border-gray-300 transition-all';
+        }
+      }
+    }
+
+    function prevPhoto() {
+      selectPhoto((current - 1 + photos.length) % photos.length);
+    }
+
+    function nextPhoto() {
+      selectPhoto((current + 1) % photos.length);
+    }
+
+    // Toggle Comments Panel
+    function toggleComments() {
+      document.getElementById('comments-panel').classList.toggle('hidden');
+    }
+
+    // Add New Comment dynamically
+    function addComment(e) {
+      e.preventDefault();
+      const input = document.getElementById('comment-input');
+      const text = input.value.trim();
+      if (!text) return false;
+
+      const list = document.getElementById('comments-list');
+      const row = document.createElement('div');
+      row.className = 'flex items-start gap-2 animate-fadeIn';
+      row.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-brand-100 text-brand-800 text-xs font-bold flex items-center justify-center shrink-0">
+          You
+        </div>
+        <div class="bg-brand-50/60 border border-brand-100 rounded-2xl px-3 py-2 flex-1">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-gray-800">You</p>
+            <span class="text-[10px] text-gray-400">Just now</span>
+          </div>
+          <p class="text-xs text-gray-700 mt-0.5"></p>
+        </div>`;
+      row.querySelector('p.text-xs.text-gray-700').textContent = text;
+      list.appendChild(row);
+      list.scrollTop = list.scrollHeight;
+
+      // Update count badge
+      const countEl = document.getElementById('comment-count');
+      const currentCount = parseInt(countEl.textContent.replace(/\D/g, ''), 10) || 0;
+      countEl.textContent = `(${currentCount + 1})`;
+
+      input.value = '';
+      showToast('Comment posted!');
+      return false;
+    }
+
+    // Like Toggle
+    let isLiked = false;
+    let likes = 14;
+    function toggleLike() {
+      isLiked = !isLiked;
+      likes += isLiked ? 1 : -1;
+      document.getElementById('likeCount').innerText = likes;
+      const heart = document.getElementById('heartIcon');
+      if (isLiked) {
+        heart.className = 'ti ti-heart-filled text-lg text-rose-500';
+        showToast('Saved to liked listings!');
+      } else {
+        heart.className = 'ti ti-heart text-lg text-gray-400';
+      }
+    }
+
+    // Bookmark Toggle
+    let isBookmarked = false;
+    function toggleBookmark() {
+      isBookmarked = !isBookmarked;
+      const icon = document.getElementById('bookmarkIcon');
+      if (isBookmarked) {
+        icon.className = 'ti ti-bookmark-filled text-lg text-brand-600';
+        showToast('Saved to your bookmarks!');
+      } else {
+        icon.className = 'ti ti-bookmark text-lg text-gray-400';
+      }
+    }
+
+    // Copy Address with Fallback
+    function copyFullAddress() {
+      const address = document.getElementById('fullAddress').innerText.trim();
+      const handleSuccess = () => {
+        document.getElementById('copyBtnLabel').innerText = 'Copied!';
+        showToast('Address copied to clipboard!');
+        setTimeout(() => {
+          document.getElementById('copyBtnLabel').innerText = 'Copy';
+        }, 2500);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(address)
+          .then(handleSuccess)
+          .catch(() => {
+            fallbackCopy(address);
+            handleSuccess();
+          });
+      } else {
+        fallbackCopy(address);
+        handleSuccess();
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {}
+      document.body.removeChild(textArea);
+    }
+
+    // Share Listing
+    function shareListing() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Cozy Room in Darjeeling',
+          text: 'Check out this room listing on RoomFind!',
+          url: window.location.href,
+        }).catch(() => {
+          fallbackCopy(window.location.href);
+          showToast('Listing link copied to clipboard!');
+        });
+      } else {
+        fallbackCopy(window.location.href);
+        showToast('Listing link copied to clipboard!');
+      }
+    }
+
+    // Toast Notification
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>

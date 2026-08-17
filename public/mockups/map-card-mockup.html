@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoomFind - Location & Map Card Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#1D9E75',
+              light: '#E1F5EE',
+              dark: '#147959',
+            },
+            coral: '#D85A30',
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #ececea;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center justify-center">
+
+  <!-- Mobile Screen Shell Mockup -->
+  <div class="w-full max-w-md bg-[#ececea] min-h-[700px] border border-black/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+
+    <!-- Top Header -->
+    <header class="bg-white border-b border-black/[0.09] px-4 py-3.5 flex items-center justify-between sticky top-0 z-10">
+      <div class="flex items-center gap-3">
+        <button class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div>
+          <h1 class="font-semibold text-slate-900 text-[15px] leading-tight">Spacious 1BHK in Court More</h1>
+          <p class="text-[11px] text-slate-400">Siliguri, West Bengal</p>
+        </div>
+      </div>
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-brand">₹8,500/mo</span>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="p-3.5 space-y-3.5 flex-1 overflow-y-auto">
+
+      <!-- Context Notice Banner -->
+      <div class="bg-brand-light/60 border border-brand/20 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-brand-dark">
+        <svg class="w-4 h-4 text-brand shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Interactive mockup of the proposed <strong>Location & Directions Card</strong> for the Listing Detail Page.</span>
+      </div>
+
+      <!-- PROPOSED LOCATION CARD -->
+      <div class="bg-white rounded-2xl border border-black/[0.09] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        
+        <!-- Card Header with Title and Live Distance Badge -->
+        <div class="px-4 py-3.5 border-b border-black/[0.07] flex items-center justify-between bg-slate-50/50">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-light flex items-center justify-center">
+              <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <h2 class="font-semibold text-slate-900 text-[15px]">Location & Surroundings</h2>
+          </div>
+          
+          <!-- Dynamic Distance Badge -->
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-brand text-[11px] font-semibold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>2.4 km from you</span>
+          </div>
+        </div>
+
+        <!-- Address & Copy Info Row -->
+        <div class="p-4 space-y-2.5">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-0.5">
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Full Address</p>
+              <p id="addressText" class="text-[13px] font-medium text-slate-800 leading-snug">
+                Court More, Kachari Road, Lichu Bagan Harijan Colony, Siliguri - 734001, WB, India
+              </p>
+            </div>
+            <!-- Copy Address Button -->
+            <button id="copyBtn" onclick="copyAddress()" class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              <span id="copyText">Copy</span>
+            </button>
+          </div>
+          
+          <!-- Nearby Landmark Chips -->
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
+              🏦 200m from SBI Bank
+            </span>
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
+              🚌 3 min walk to Bus Stand
+            </span>
+          </div>
+        </div>
+
+        <!-- Interactive Map Preview with Overlays -->
+        <div class="relative bg-slate-100 aspect-[16/9] border-t border-b border-black/[0.07] overflow-hidden group">
+          <iframe 
+            src="https://maps.google.com/maps?q=26.7282417,88.4038965&z=15&output=embed" 
+            class="w-full h-full border-0 pointer-events-none filter contrast-[1.02]" 
+            title="Room Location Map" 
+            loading="lazy">
+          </iframe>
+
+          <!-- Custom Marker Pin Overlay -->
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
+            <div class="bg-brand text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-lg border border-white flex items-center gap-1 animate-bounce">
+              <span>₹8,500/mo</span>
+            </div>
+            <div class="w-3 h-3 bg-brand rotate-45 -mt-1.5 shadow-md"></div>
+          </div>
+
+          <!-- Bottom Floating Map Bar -->
+          <div class="absolute bottom-2 left-2 right-2 bg-slate-900/85 backdrop-blur-md text-white px-3 py-2 rounded-xl flex items-center justify-between text-xs shadow-lg">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="font-medium">Exact Location Pin</span>
+            </div>
+            <span class="text-[10px] text-slate-300">Tap for full map</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons Footer -->
+        <div class="p-3 bg-slate-50/50 flex gap-2">
+          <!-- Get Directions Primary Action Button -->
+          <a 
+            href="https://www.google.com/maps/dir/?api=1&destination=26.7282417,88.4038965" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand text-white font-semibold text-xs hover:bg-brand-dark active:scale-[0.98] transition-all shadow-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+            <span>Get Directions</span>
+          </a>
+
+          <!-- Share Location Secondary Button -->
+          <button 
+            onclick="shareLocation()"
+            class="px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-100 active:scale-[0.98] transition-all flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+            <span>Share</span>
+          </button>
+        </div>
+
+      </div>
+      <!-- END LOCATION CARD -->
+
+    </main>
+
+    <!-- Bottom Toast Alert -->
+    <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 z-50 animate-bounce">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      <span id="toastMsg">Action completed</span>
+    </div>
+
+  </div>
+
+  <script>
+    function copyAddress() {
+      const address = document.getElementById('addressText').innerText.trim();
+      navigator.clipboard.writeText(address);
+      
+      const copyText = document.getElementById('copyText');
+      copyText.innerText = 'Copied!';
+      showToast('Address copied to clipboard!');
+
+      setTimeout(() => {
+        copyText.innerText = 'Copy';
+      }, 2500);
+    }
+
+    function shareLocation() {
+      const mapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=26.7282417,88.4038965';
+      if (navigator.share) {
+        navigator.share({
+          title: 'Room Location',
+          text: 'Check out this room location on RoomFind',
+          url: mapsUrl,
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(mapsUrl);
+        showToast('Location link copied!');
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>

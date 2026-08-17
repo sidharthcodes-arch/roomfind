@@ -1,3 +1,5 @@
 .env.local
 node_modules/
 .next/
+KILL_PORT_GUIDE.md
+
