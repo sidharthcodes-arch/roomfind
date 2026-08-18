@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, MapPin, Phone, User, Home, Users, CheckCircle, ShieldCheck,
   ChevronLeft, ChevronRight, Heart, MessageCircle, Share, Bookmark, Pencil,
-  Navigation, Copy, Send, ExternalLink
+  Navigation, Copy, Send, ExternalLink, Map
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import ShareModal from '@/components/ShareModal'
@@ -229,31 +229,22 @@ export default function ListingDetailPage({ params }) {
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={() => setToast(null)} />}
 
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-black/[0.09] px-4 py-2.5 flex items-center justify-between gap-2 shadow-xs">
-        <Link href="/" className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors shrink-0">
-          <ArrowLeft className="w-4.5 h-4.5" />
-        </Link>
-
-        <div className="flex-1 min-w-0 px-1">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Listing Details</p>
-          <h1 className="font-bold text-slate-900 text-sm truncate leading-snug">{listing.title}</h1>
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 shadow-xs">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <Link href="/" className="w-8.5 h-8.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors shrink-0" aria-label="Back">
+            <ChevronLeft className="w-5 h-5 text-slate-700" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-bold text-slate-900 text-sm truncate leading-snug">{listing.title}</h1>
+            <p className="text-[11.5px] text-slate-400 font-normal truncate mt-0.5">
+              {[listing.city, listing.state || 'West Bengal'].filter(Boolean).join(', ')}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {user?.id === listing.user_id && (
-            <Link
-              href={`/edit-listing/${listing.id}`}
-              className="flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 rounded-full px-3 py-1 hover:bg-emerald-100 transition-colors"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              <span>Edit</span>
-            </Link>
-          )}
-
-          <button onClick={handleShare} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 shrink-0" aria-label="Share listing">
-            <Share className="w-4 h-4" />
-          </button>
-        </div>
+        <span className="text-xs font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200/50 px-3 py-1.5 rounded-full shrink-0">
+          ₹{Number(listing.price).toLocaleString('en-IN')}
+        </span>
       </header>
 
       {/* Main Content Stack */}
@@ -261,75 +252,74 @@ export default function ListingDetailPage({ params }) {
 
         {/* MASTER UNIFIED CARD (Hero + Owner + Price/Title + Specs + Social + Comments) */}
         <div className="bg-white rounded-2xl border border-black/[0.09] shadow-sm overflow-hidden space-y-0">
-
+          
           {/* 1. Hero Photo Carousel */}
           {photos.length > 0 ? (
             <div className="relative bg-slate-900 aspect-[4/3] overflow-hidden group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
               <img src={photos[currentPhoto]} alt="" className="w-full h-full object-cover transition-all duration-300" />
-              
-              {/* Top Left Badges */}
-              <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-                <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1 ${isTaken ? 'bg-slate-700 text-white' : 'bg-[#00a884] text-white'}`}>
-                  <CheckCircle className="w-3.5 h-3.5 fill-white/20" />
+                           {/* Top Left: Available Pill (Green) + Single Room Pill (Neutral Dark) */}
+              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1.5 ${
+                  isTaken ? 'bg-slate-700 text-white' : 'bg-[#00a884] text-white'
+                }`}>
+                  <svg className="w-3 h-3 fill-current text-white shrink-0" width="12" height="12" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
                   <span>{isTaken ? 'Taken' : 'Available'}</span>
                 </span>
-                <span className="bg-black/60 backdrop-blur-md text-white text-xs font-medium px-3 py-1 rounded-full border border-white/20 capitalize">
+                <span className="bg-slate-900/65 backdrop-blur-md text-white/90 text-[11px] font-medium px-2.5 py-0.5 rounded-full capitalize border border-white/10">
                   {listing.room_type} Room
                 </span>
               </div>
 
-              {/* Top Right Distance Badge */}
-              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-medium px-3 py-1 rounded-full z-10 flex items-center gap-1 border border-white/20">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{userDistance ? `${userDistance} km away` : '0.0 km away'}</span>
-              </div>
+              {/* Top Right: Small, Understated Photo Counter */}
+              {photos.length > 1 && (
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <span className="bg-slate-900/65 backdrop-blur-md text-white/80 text-[10px] font-normal px-2.5 py-0.5 rounded-full border border-white/10">
+                    {currentPhoto + 1} / {photos.length}
+                  </span>
+                </div>
+              )}
 
-              {/* Carousel Navigation Arrows */}
+              {/* Clear, Discoverable Photo Navigation Arrows */}
               {photos.length > 1 && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); prevPhoto(); }} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-all z-10" aria-label="Previous photo">
-                    <ChevronLeft className="w-4.5 h-4.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white/90 hover:text-white backdrop-blur-xs opacity-85 hover:opacity-100 transition-all z-10 shadow-xs"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); nextPhoto(); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white backdrop-blur-sm transition-all z-10" aria-label="Next photo">
-                    <ChevronRight className="w-4.5 h-4.5" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white/90 hover:text-white backdrop-blur-xs opacity-85 hover:opacity-100 transition-all z-10 shadow-xs"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </>
               )}
-
-              {/* Photo Counter & Dot Indicators */}
-              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
-                <span className="bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2.5 py-0.5 rounded-md">
-                  {currentPhoto + 1} / {photos.length} Photos
-                </span>
-
-                {photos.length > 1 && (
-                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
-                    {photos.map((_, i) => (
-                      <div
-                        key={i}
-                        className={`transition-all ${i === currentPhoto ? 'w-4 h-1.5 rounded-full bg-white' : 'w-1.5 h-1.5 rounded-full bg-white/50'}`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           ) : (
             <div className="aspect-[4/3] bg-slate-200 flex items-center justify-center">
-              <MapPin className="w-10 h-10 text-slate-400" />
+              <span className="text-slate-400 text-xs font-medium">No photo available</span>
             </div>
           )}
 
-          {/* 2. Interactive Thumbnail Strip */}
+          {/* Photo Thumbnails Row */}
           {photos.length > 1 && (
-            <div className="flex gap-2 px-3.5 py-2.5 overflow-x-auto scrollbar-hide bg-slate-50/60 border-b border-slate-100">
-              {photos.map((photo, i) => (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1.5 scrollbar-none">
+              {photos.map((photo, index) => (
                 <button
-                  key={i}
-                  onClick={() => setCurrentPhoto(i)}
-                  className={`shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                    i === currentPhoto ? 'border-[#00a884] ring-2 ring-[#00a884]/30' : 'border-transparent hover:border-slate-300'
+                  key={index}
+                  onClick={() => setCurrentPhoto(index)}
+                  className={`relative rounded-lg overflow-hidden shrink-0 transition-all ${
+                    currentPhoto === index
+                      ? 'ring-1.5 ring-[#00a884] opacity-100'
+                      : 'opacity-65 hover:opacity-90'
                   }`}
+                  style={{ width: '60px', height: '44px' }}
                 >
                   <img src={photo} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -356,8 +346,11 @@ export default function ListingDetailPage({ params }) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-slate-900 truncate">{ownerName}</span>
-                    <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Owner
+                    <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                      <svg className="w-3.5 h-3.5 fill-current text-emerald-600 shrink-0" width="14" height="14" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>Owner</span>
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -382,7 +375,9 @@ export default function ListingDetailPage({ params }) {
               <div>
                 <h2 className="text-lg font-extrabold text-slate-900 leading-snug">{listing.title}</h2>
                 <p className="text-[13.5px] text-slate-600 font-medium mt-1 flex items-start gap-1">
-                  <MapPin className="w-4 h-4 text-[#00a884] shrink-0 mt-0.5" />
+                  <svg className="w-4 h-4 fill-current text-[#00a884] shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                  </svg>
                   <span>{[listing.address, listing.area, listing.city].filter(Boolean).join(', ')}</span>
                 </p>
               </div>
@@ -399,7 +394,9 @@ export default function ListingDetailPage({ params }) {
               <div className="grid grid-cols-3 gap-2.5">
                 <div className="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
-                    <Home className="w-4 h-4" />
+                    <svg className="w-4 h-4 fill-current text-emerald-700" width="16" height="16" viewBox="0 0 20 20">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">Type</span>
                   <span className="text-sm font-bold text-slate-800 capitalize">{listing.room_type}</span>
@@ -407,7 +404,9 @@ export default function ListingDetailPage({ params }) {
 
                 <div className="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
-                    <CheckCircle className="w-4 h-4" />
+                    <svg className="w-4 h-4 fill-current text-emerald-700" width="16" height="16" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">Furnished</span>
                   <span className="text-sm font-bold text-slate-800">
@@ -417,7 +416,9 @@ export default function ListingDetailPage({ params }) {
 
                 <div className="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
-                    <Users className="w-4 h-4" />
+                    <svg className="w-4 h-4 fill-current text-emerald-700" width="16" height="16" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">Gender</span>
                   <span className="text-sm font-bold text-slate-800 capitalize">
@@ -442,13 +443,15 @@ export default function ListingDetailPage({ params }) {
                   }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-800 transition-colors"
                 >
-                  <MessageCircle className="w-4.5 h-4.5 text-[#00a884]" />
+                  <MessageCircle className="w-4 h-4 text-slate-500" />
                   <span>Comment</span>
-                  <span className="text-[#00a884] font-bold">({comments.length})</span>
+                  <span className="text-xs text-slate-500 font-normal">({comments.length})</span>
                 </button>
 
-                <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors">
-                  <Share className="w-4.5 h-4.5 text-slate-400" />
+                <button onClick={handleShare} className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-800 transition-colors">
+                  <svg className="w-4.5 h-4.5 fill-current text-slate-500 shrink-0" width="18" height="18" viewBox="0 0 24 24">
+                    <path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z" />
+                  </svg>
                   <span>Share</span>
                 </button>
 
@@ -510,41 +513,66 @@ export default function ListingDetailPage({ params }) {
         </div>
 
         {/* SEPARATE LOCATION & NAVIGATION CARD BELOW */}
-        <div className="bg-white rounded-2xl border border-black/[0.09] p-4 shadow-sm space-y-3">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           
-          {/* Location Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0">
-                <MapPin className="w-4 h-4 fill-white" />
+          {/* Header Row (Lighter grey background) */}
+          <div className="p-4 pb-3.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white border border-emerald-200/50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+                <svg className="w-5 h-5 fill-current text-emerald-600 shrink-0" width="20" height="20" viewBox="0 0 24 24">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                </svg>
               </div>
               <h3 className="text-sm font-bold text-slate-900">Location & Navigation</h3>
             </div>
 
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full flex items-center gap-1">
-              🚗 {userDistance ? `${userDistance} km away` : '0.0 km away'}
+            <span className="text-xs font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+              🚗 <span>{userDistance ? `${userDistance} km away` : '0.0 km away'}</span>
             </span>
           </div>
 
-          {/* Address Row & Copy */}
-          <div className="flex items-start justify-between gap-2.5 pt-1">
-            <p className="text-sm font-semibold text-slate-800 leading-snug">
-              {[listing.address, listing.area, listing.city].filter(Boolean).join(', ')}
-            </p>
-            <button
-              onClick={handleCopyAddress}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copyText}</span>
-            </button>
+          {/* Address & Content Body (White background) */}
+          <div className="p-4 space-y-3 bg-white">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">FULL ADDRESS</span>
+                <div className="space-y-0.5 text-sm">
+                  <p className="font-normal text-slate-800 leading-snug">
+                    {[listing.address, listing.area].filter(Boolean).join(', ')}
+                  </p>
+                  {listing.city && (
+                    <p className="text-xs font-medium text-slate-500 pt-0.5 leading-snug">
+                      {[listing.city, listing.state || 'West Bengal'].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={handleCopyAddress}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+              >
+                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                <span>{copyText}</span>
+              </button>
+            </div>
+
+            {/* Clean Micro-Landmark Chips */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <span className="text-[11.5px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-full flex items-center gap-1">
+                🚌 Easy Transport Access
+              </span>
+              <span className="text-[11.5px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-full flex items-center gap-1">
+                🛡️ Verified Location
+              </span>
+            </div>
           </div>
 
-          {/* Google Maps View (Clean without pin overlay) */}
+          {/* Google Maps View */}
           {listing.latitude != null && listing.longitude != null && (
-            <div className="relative bg-slate-100 aspect-[16/9] border border-slate-100 rounded-xl overflow-hidden group">
+            <div className="relative bg-slate-100 h-72 w-full border-t border-slate-200/60 overflow-hidden group">
               <iframe
-                src={`https://maps.google.com/maps?q=${listing.latitude},${listing.longitude}&z=15&output=embed`}
+                src={`https://maps.google.com/maps?q=${listing.latitude},${listing.longitude}&z=17&output=embed`}
                 className="w-full h-full border-0 filter contrast-[1.02]"
                 title="Listing Location Map"
                 loading="lazy"
@@ -552,17 +580,19 @@ export default function ListingDetailPage({ params }) {
             </div>
           )}
 
-          {/* Get Directions Button */}
+          {/* Get Directions Button Footer */}
           {googleMapsDirectionsUrl && (
-            <a
-              href={googleMapsDirectionsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#00a884] hover:bg-[#008f6f] text-white font-bold text-sm transition-all shadow-xs active:scale-98"
-            >
-              <Navigation className="w-4 h-4 fill-white/20" />
-              <span>Get Directions in Google Maps</span>
-            </a>
+            <div className="p-3 bg-slate-100/60 border-t border-slate-200/60">
+              <a
+                href={googleMapsDirectionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#00a884] hover:bg-[#008f6f] text-white font-bold text-sm transition-all shadow-xs active:scale-98"
+              >
+                <Map className="w-4 h-4 text-white shrink-0" />
+                <span>Get Directions in Google Maps</span>
+              </a>
+            </div>
           )}
         </div>
 
@@ -589,7 +619,9 @@ export default function ListingDetailPage({ params }) {
             rel="noopener noreferrer"
             className="flex-1 max-w-[210px] flex items-center justify-center gap-2 py-3 rounded-xl bg-[#00a884] hover:bg-[#008f6f] active:scale-98 text-white font-bold text-sm transition-all shadow-md"
           >
-            <Phone className="w-4.5 h-4.5 fill-white" />
+            <svg className="w-5 h-5 fill-current text-white shrink-0" width="20" height="20" viewBox="0 0 20 20">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
             <span>Contact Owner</span>
           </a>
         )}
