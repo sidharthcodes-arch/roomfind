@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import {
   ArrowLeft, MapPin, Phone, User, Home, Users, CheckCircle, ShieldCheck,
   ChevronLeft, ChevronRight, Heart, MessageCircle, Share, Bookmark, Pencil,
-  Navigation, Copy, Send, ExternalLink, Map
+  Navigation, Copy, Send, ExternalLink, Map, Trash2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import ShareModal from '@/components/ShareModal'
@@ -99,10 +99,8 @@ export default function ListingDetailPage({ params }) {
   // Comments state (Always open community discussion)
   const [showComments, setShowComments] = useState(true)
   const [newCommentText, setNewCommentText] = useState('')
-  const [comments, setComments] = useState([
-    { id: 1, name: 'Priya M.', text: 'Is this room still available for next month?', time: '1h ago' },
-    { id: 2, name: 'Rahul S.', text: 'How far is it walking distance from the main market?', time: '30m ago' },
-  ])
+  const [comments, setComments] = useState([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -121,7 +119,7 @@ export default function ListingDetailPage({ params }) {
       try {
         const { data, error } = await supabase
           .from('listings')
-          .select('*, users(full_name, phone_number, profile_photo)')
+          .select('*, users(id, full_name, phone_number, profile_photo)')
           .eq('id', id)
           .single()
         if (error) throw error
@@ -155,6 +153,91 @@ export default function ListingDetailPage({ params }) {
     fetchListing()
   }, [id, user])
 
+  // Real-time comments fetch & subscription
+  useEffect(() => {
+    if (!id) return
+    let isMounted = true
+
+    const fetchComments = async () => {
+      setCommentsLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('listing_comments')
+          .select('id, comment_text, created_at, user_id, users(full_name, profile_photo)')
+          .eq('listing_id', id)
+          .order('created_at', { ascending: true })
+
+        if (!error && data && isMounted) {
+          setComments(data)
+        }
+      } catch (err) {
+        console.error('Error fetching comments:', err)
+      } finally {
+        if (isMounted) setCommentsLoading(false)
+      }
+    }
+
+    fetchComments()
+
+    // Realtime channel subscription
+    const channel = supabase
+      .channel(`realtime-comments-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'listing_comments',
+          filter: `listing_id=eq.${id}`,
+        },
+        async (payload) => {
+          const newRecord = payload.new
+
+          let authorObj = null
+          try {
+            const { data: userData } = await supabase
+              .from('users')
+              .select('full_name, profile_photo')
+              .eq('id', newRecord.user_id)
+              .maybeSingle()
+            authorObj = userData
+          } catch (_) {}
+
+          const fullComment = {
+            ...newRecord,
+            users: authorObj,
+          }
+
+          if (isMounted) {
+            setComments((prev) => {
+              if (prev.some((c) => c.id === newRecord.id)) return prev
+              return [...prev, fullComment]
+            })
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'listing_comments',
+        },
+        (payload) => {
+          const deletedId = payload.old?.id
+          if (deletedId && isMounted) {
+            setComments((prev) => prev.filter((c) => c.id !== deletedId))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      isMounted = false
+      supabase.removeChannel(channel)
+    }
+  }, [id])
+
   const handleLike = async () => {
     if (!user) {
       showToast('Please log in to like listings', 'error')
@@ -171,17 +254,76 @@ export default function ListingDetailPage({ params }) {
     }
   }
 
-  const handleAddComment = (e) => {
+  const handleAddComment = async (e) => {
     e.preventDefault()
     const trimmed = newCommentText.trim()
     if (!trimmed) return
-    const authorName = user?.user_metadata?.full_name || 'You'
-    setComments((prev) => [
-      ...prev,
-      { id: Date.now(), name: authorName, text: trimmed, time: 'Just now' },
-    ])
+
+    if (!user) {
+      showToast('Please log in to post a comment', 'error')
+      return
+    }
+
+    const tempId = `temp-${Date.now()}`
+    const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'You'
+    const userPhoto = user?.user_metadata?.avatar_url || user?.user_metadata?.profile_photo || null
+
+    const optimisticComment = {
+      id: tempId,
+      comment_text: trimmed,
+      created_at: new Date().toISOString(),
+      user_id: user.id,
+      users: {
+        full_name: userName,
+        profile_photo: userPhoto,
+      },
+    }
+
+    setComments((prev) => [...prev, optimisticComment])
     setNewCommentText('')
-    showToast('Comment posted!')
+
+    try {
+      const { data, error } = await supabase
+        .from('listing_comments')
+        .insert({
+          listing_id: id,
+          user_id: user.id,
+          comment_text: trimmed,
+        })
+        .select('id, comment_text, created_at, user_id, users(full_name, profile_photo)')
+        .single()
+
+      if (error) throw error
+      if (data) {
+        setComments((prev) => prev.map((c) => (c.id === tempId ? data : c)))
+        showToast('Comment posted!')
+      }
+    } catch (err) {
+      console.error('Failed to post comment:', err)
+      showToast(err?.message || 'Failed to post comment', 'error')
+      setComments((prev) => prev.filter((c) => c.id !== tempId))
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    if (!user) return
+
+    const previousComments = [...comments]
+    setComments((prev) => prev.filter((c) => c.id !== commentId))
+
+    try {
+      const { error } = await supabase
+        .from('listing_comments')
+        .delete()
+        .eq('id', commentId)
+
+      if (error) throw error
+      showToast('Comment deleted')
+    } catch (err) {
+      console.error('Failed to delete comment:', err)
+      showToast(err?.message || 'Failed to delete comment', 'error')
+      setComments(previousComments)
+    }
   }
 
   const handleCopyAddress = () => {
@@ -475,21 +617,62 @@ export default function ListingDetailPage({ params }) {
                     <span className="text-xs text-slate-400">Ask the owner questions</span>
                   </div>
 
-                  <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="flex items-start gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200/60">
-                          {initials(comment.name)}
-                        </div>
-                        <div className="bg-slate-50 border border-slate-100 rounded-2xl px-3.5 py-2.5 flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-bold text-slate-900">{comment.name}</p>
-                            <span className="text-xs text-slate-400">{comment.time}</span>
-                          </div>
-                          <p className="text-[13.5px] text-slate-700 mt-0.5 leading-snug">{comment.text}</p>
-                        </div>
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-1 scrollbar-thin">
+                    {commentsLoading ? (
+                      <div className="py-4 text-center text-xs text-slate-400">Loading comments...</div>
+                    ) : comments.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        No comments yet. Be the first to ask the owner a question!
                       </div>
-                    ))}
+                    ) : (
+                      comments.map((comment) => {
+                        const authorName = comment.users?.full_name || 'Anonymous User'
+                        const isOwner = (listing?.user_id && comment.user_id === listing.user_id) || (listing?.users?.id && comment.user_id === listing.users.id)
+                        const avatarPhoto = comment.users?.profile_photo
+                        const isAuthor = user && comment.user_id === user.id
+                        const isListingOwner = user && ((listing?.user_id && user.id === listing.user_id) || (listing?.users?.id && user.id === listing.users.id))
+                        const canDelete = isAuthor || isListingOwner
+                        const commentText = comment.comment_text || comment.body
+
+                        return (
+                          <div key={comment.id} className="flex items-start gap-2.5 group">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200/60 overflow-hidden">
+                              {avatarPhoto ? (
+                                <img src={avatarPhoto} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <span>{initials(authorName)}</span>
+                              )}
+                            </div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-2xl px-3.5 py-2.5 flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-sm font-bold text-slate-900 truncate">{authorName}</span>
+                                  {isOwner && (
+                                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/90 border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0">
+                                      Owner
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[11px] text-slate-400">{timeAgo(comment.created_at)}</span>
+                                  {canDelete && (
+                                    <button
+                                      onClick={() => handleDeleteComment(comment.id)}
+                                      title="Delete comment"
+                                      className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors ml-0.5"
+                                      aria-label="Delete comment"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-[13.5px] text-slate-700 mt-1 leading-snug break-words">{commentText}</p>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
 
                   <form onSubmit={handleAddComment} className="flex items-center gap-2 pt-1">
