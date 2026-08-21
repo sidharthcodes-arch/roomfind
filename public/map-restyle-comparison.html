@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoomFind - Map Restyle Comparison</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["DM Sans", "sans-serif"] },
+          colors: {
+            brand: { DEFAULT: "#00a884", hover: "#008f6f" }
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans p-4 md:p-8 min-h-screen">
+  <div class="max-w-4xl mx-auto space-y-6">
+    <div class="text-center space-y-2">
+      <h1 class="text-2xl font-bold text-slate-900">Map Restyle Mockup Comparison</h1>
+      <p class="text-sm text-slate-500">Compare Option 1 (Subtle Brand Tint) vs Option 2 (Bold Near-Monochrome Dark Map)</p>
+    </div>
+
+    <!-- Toggle Controls -->
+    <div class="flex items-center justify-center gap-3">
+      <button onclick="showOption('both')" id="btn-both" class="px-4 py-2 rounded-xl text-xs font-bold bg-[#00a884] text-white shadow-sm">Side-by-Side View</button>
+      <button onclick="showOption('subtle')" id="btn-subtle" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200">Option 1: Subtle</button>
+      <button onclick="showOption('bold')" id="btn-bold" class="px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200">Option 2: Bold</button>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="comparison-grid">
+      
+      <!-- OPTION 1: SUBTLE -->
+      <div id="card-subtle" class="bg-white rounded-2xl border border-slate-200/80 shadow-md overflow-hidden flex flex-col">
+        <div class="p-4 bg-emerald-50/60 border-b border-emerald-100 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-[#00a884]"></span>
+            <h3 class="text-sm font-bold text-slate-900">Option 1: Subtle Restyle</h3>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-200">Brand Warm Tint</span>
+        </div>
+
+        <div class="p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Location & Navigation</h4>
+            <span class="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+              <span>1.2 km away</span>
+            </span>
+          </div>
+          <p class="text-sm font-medium text-slate-800">Block EP, Sector V, Salt Lake, Kolkata</p>
+        </div>
+
+        <!-- Subtle Map Embed -->
+        <div class="relative h-64 w-full bg-slate-100 overflow-hidden group border-y border-slate-100">
+          <iframe
+            src="https://maps.google.com/maps?q=22.5726,88.4331&z=16&output=embed"
+            class="w-full h-full border-0 filter grayscale-[25%] contrast-[104%] brightness-[99%] hue-rotate-[-5deg]"
+            title="Subtle Map"
+          ></iframe>
+          <!-- Custom Emerald Location Pin Overlay -->
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="relative -mt-6">
+              <div class="w-10 h-10 rounded-full bg-[#00a884] text-white flex items-center justify-center shadow-lg border-2 border-white ring-4 ring-[#00a884]/20 animate-bounce">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-50 mt-auto border-t border-slate-100">
+          <button class="w-full py-2.5 rounded-xl bg-[#00a884] hover:bg-[#008f6f] text-white font-bold text-xs shadow-xs transition-colors">
+            Get Directions (Google Maps)
+          </button>
+        </div>
+      </div>
+
+      <!-- OPTION 2: BOLD -->
+      <div id="card-bold" class="bg-slate-900 rounded-2xl border border-slate-800 shadow-md overflow-hidden flex flex-col text-white">
+        <div class="p-4 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+            <h3 class="text-sm font-bold text-white">Option 2: Bold Dark Restyle</h3>
+          </div>
+          <span class="text-[11px] font-semibold text-emerald-300 bg-slate-900 px-2.5 py-0.5 rounded-full border border-emerald-500/30">Near-Monochrome Dark</span>
+        </div>
+
+        <div class="p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Location & Navigation</h4>
+            <span class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>
+              <span>1.2 km away</span>
+            </span>
+          </div>
+          <p class="text-sm font-medium text-slate-200">Block EP, Sector V, Salt Lake, Kolkata</p>
+        </div>
+
+        <!-- Dark Map Embed -->
+        <div class="relative h-64 w-full bg-slate-950 overflow-hidden group border-y border-slate-800">
+          <iframe
+            src="https://maps.google.com/maps?q=22.5726,88.4331&z=16&output=embed"
+            class="w-full h-full border-0 filter invert-[92%] hue-rotate-[175deg] brightness-[88%] contrast-[115%]"
+            title="Bold Dark Map"
+          ></iframe>
+          <!-- Neon Emerald Pin Overlay -->
+          <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="relative -mt-6">
+              <div class="w-10 h-10 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center shadow-[0_0_20px_rgba(52,211,153,0.8)] border-2 border-white ring-4 ring-emerald-400/30 animate-pulse">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-950 mt-auto border-t border-slate-800">
+          <button class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs shadow-md transition-colors">
+            Get Directions (Google Maps)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function showOption(opt) {
+      const subtle = document.getElementById('card-subtle');
+      const bold = document.getElementById('card-bold');
+      const grid = document.getElementById('comparison-grid');
+
+      document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
+        btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200";
+      });
+
+      document.getElementById('btn-' + opt).className = "px-4 py-2 rounded-xl text-xs font-bold bg-[#00a884] text-white shadow-sm";
+
+      if (opt === 'subtle') {
+        grid.className = "grid grid-cols-1 max-w-md mx-auto gap-6";
+        subtle.classList.remove('hidden');
+        bold.classList.add('hidden');
+      } else if (opt === 'bold') {
+        grid.className = "grid grid-cols-1 max-w-md mx-auto gap-6";
+        subtle.classList.add('hidden');
+        bold.classList.remove('hidden');
+      } else {
+        grid.className = "grid grid-cols-1 md:grid-cols-2 gap-6";
+        subtle.classList.remove('hidden');
+        bold.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>

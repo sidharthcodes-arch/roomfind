@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RoomFind - Single Room in Salt Lake Sector V (Listing Mockup)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: DM Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              DEFAULT: '#00a884',
+              hover: '#008f6f',
+              light: '#e6f7f3',
+            },
+            coral: '#D85A30',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar styling */
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+  </style>
+</head>
+<body class="bg-[#ececea] text-slate-800 font-sans min-h-screen antialiased selection:bg-[#00a884]/20 selection:text-[#00a884]">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col gap-2 max-w-sm w-full px-4"></div>
+
+  <!-- Mobile View Wrapper (Max-W-MD Centered Container) -->
+  <div class="min-h-screen max-w-md mx-auto relative bg-[#ececea] pb-28 border-x border-black/[0.05]">
+
+    <!-- Top Header Bar -->
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 shadow-xs">
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <a href="#" class="w-8.5 h-8.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors shrink-0" aria-label="Back">
+          <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </a>
+        <div class="min-w-0 flex-1">
+          <h1 class="font-bold text-slate-900 text-sm truncate leading-snug">Spacious Single Room near Tech Park</h1>
+          <p class="text-[11.5px] text-slate-400 font-normal truncate mt-0.5">Kolkata, West Bengal</p>
+        </div>
+      </div>
+
+      <span class="text-xs font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200/50 px-3 py-1.5 rounded-full shrink-0">
+        ₹8,500
+      </span>
+    </header>
+
+    <!-- Main Content Stack -->
+    <div class="p-3 space-y-3.5">
+
+      <!-- MASTER UNIFIED CARD (Hero + Owner + Price/Title + Specs + Social + Comments) -->
+      <div class="bg-white rounded-2xl border border-black/[0.09] shadow-sm overflow-hidden space-y-0">
+        
+        <!-- 1. Hero Photo Carousel -->
+        <div class="relative bg-slate-900 aspect-[4/3] overflow-hidden group cursor-pointer" onclick="openLightbox()">
+          <img id="carousel-hero-img" src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80" alt="Listing room photo" class="w-full h-full object-cover transition-all duration-300" />
+          
+          <!-- Top Left: Available Pill (Green) + Single Room Pill -->
+          <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10">
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1.5 bg-[#00a884] text-white">
+              <svg class="w-3 h-3 fill-current text-white shrink-0" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              <span>Available</span>
+            </span>
+            <span class="bg-slate-900/65 backdrop-blur-md text-white/90 text-[11px] font-medium px-2.5 py-0.5 rounded-full capitalize border border-white/10">
+              Single Room
+            </span>
+          </div>
+
+          <!-- Top Right: Photo Counter -->
+          <div class="absolute top-2.5 right-2.5 z-10">
+            <span id="photo-counter" class="bg-slate-900/65 backdrop-blur-md text-white/80 text-[10px] font-normal px-2.5 py-0.5 rounded-full border border-white/10">
+              1 / 4
+            </span>
+          </div>
+
+          <!-- Photo Navigation Arrows -->
+          <button onclick="event.stopPropagation(); changePhoto(-1)" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white/90 hover:text-white backdrop-blur-xs opacity-85 hover:opacity-100 transition-all z-10 shadow-xs" aria-label="Previous photo">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button onclick="event.stopPropagation(); changePhoto(1)" class="absolute right-2.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 bg-black/40 hover:bg-black/70 rounded-full flex items-center justify-center text-white/90 hover:text-white backdrop-blur-xs opacity-85 hover:opacity-100 transition-all z-10 shadow-xs" aria-label="Next photo">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <!-- Photo Thumbnails Row -->
+        <div class="flex items-center gap-2 overflow-x-auto p-2 scrollbar-none border-b border-slate-100 bg-slate-50/50" id="thumbnail-row">
+          <!-- Thumbnail buttons generated by JS -->
+        </div>
+
+        <!-- Inner Body Content -->
+        <div class="p-4 space-y-4">
+
+          <!-- Owner Profile Row -->
+          <div class="flex items-center justify-between pb-3.5 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="w-11 h-11 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-sm border border-emerald-300 overflow-hidden shrink-0">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" alt="Owner" class="w-full h-full object-cover" />
+                </div>
+                <span class="absolute bottom-0 right-0 w-3 h-3 bg-[#00a884] border-2 border-white rounded-full"></span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-slate-900 truncate">Priya Sharma</span>
+                  <span class="text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                    <svg class="w-3.5 h-3.5 fill-current text-emerald-600 shrink-0" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Owner</span>
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Responds in ~1 hour
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Price & Title Overview -->
+          <div class="space-y-2">
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-1">
+                <span class="text-[28px] font-extrabold text-slate-900 tracking-tight">₹8,500</span>
+                <span class="text-sm text-slate-500 font-medium">/month</span>
+              </div>
+              <span class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-3 py-1 rounded-full font-semibold">
+                No Brokerage
+              </span>
+            </div>
+
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900 leading-snug">Spacious Single Room near Tech Park</h2>
+              <p class="text-[13.5px] text-slate-600 font-medium mt-1 flex items-start gap-1">
+                <svg class="w-4 h-4 fill-current text-[#00a884] shrink-0 mt-0.5" viewBox="0 0 24 24">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5 z" />
+                </svg>
+                <span>Block EP, Sector V, Salt Lake, Kolkata, West Bengal</span>
+              </p>
+            </div>
+
+            <p class="text-sm leading-relaxed text-slate-700 pt-1 whitespace-pre-wrap">Well-maintained single room available for working professionals or students. High-speed Wi-Fi, attached clean washroom, 24/7 security guard, and power backup included. Walking distance to Wipro IT hub and Salt Lake Sector V metro station.</p>
+          </div>
+
+          <!-- Room Specifications Grid -->
+          <div class="pt-1">
+            <div class="grid grid-cols-3 gap-2.5">
+              <div class="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
+                  <svg class="w-4 h-4 fill-current text-emerald-700" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                  </svg>
+                </div>
+                <span class="text-xs text-slate-500 font-medium">Type</span>
+                <span class="text-sm font-bold text-slate-800 capitalize">Single</span>
+              </div>
+
+              <div class="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
+                  <svg class="w-4 h-4 fill-current text-emerald-700" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <span class="text-xs text-slate-500 font-medium">Furnished</span>
+                <span class="text-sm font-bold text-slate-800">Yes</span>
+              </div>
+
+              <div class="bg-emerald-50/50 rounded-2xl p-3 border border-emerald-100/60 text-center flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mb-1">
+                  <svg class="w-4 h-4 fill-current text-emerald-700" viewBox="0 0 20 20">
+                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                  </svg>
+                </div>
+                <span class="text-xs text-slate-500 font-medium">Gender</span>
+                <span class="text-sm font-bold text-slate-800 capitalize">Any Gender</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social Action Bar & Community Comments -->
+          <div class="pt-2.5 border-t border-slate-100 space-y-3">
+            <div class="flex items-center justify-between text-slate-600 text-sm font-semibold">
+              
+              <!-- Like Button -->
+              <button id="like-btn" onclick="toggleLike()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 transition-colors">
+                <svg id="like-icon" class="w-4.5 h-4.5 text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.684a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span id="like-count" class="text-slate-600">12</span>
+              </button>
+
+              <!-- Comment Button -->
+              <button onclick="focusCommentInput()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-800 transition-colors">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span>Comment</span>
+                <span id="comment-counter-badge" class="text-xs text-slate-500 font-normal">(3)</span>
+              </button>
+
+              <!-- Share Button -->
+              <button onclick="openShareModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-800 transition-colors">
+                <svg class="w-4.5 h-4.5 fill-current text-slate-500 shrink-0" viewBox="0 0 24 24">
+                  <path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z" />
+                </svg>
+                <span>Share</span>
+              </button>
+
+              <!-- Bookmark Button -->
+              <button id="bookmark-btn" onclick="toggleBookmark()" class="p-2 rounded-xl hover:bg-slate-50 transition-colors ml-auto" aria-label="Save listing">
+                <svg id="bookmark-icon" class="w-4.5 h-4.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Always-Open Community Discussion -->
+            <div class="pt-3.5 border-t border-slate-100 space-y-3.5">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">COMMUNITY DISCUSSION</h4>
+                <span class="text-xs text-slate-400">Ask the owner questions</span>
+              </div>
+
+              <!-- Comments List -->
+              <div id="comments-list" class="space-y-3 max-h-64 overflow-y-auto pr-1 scrollbar-thin">
+                <!-- Pre-populated sample comments -->
+              </div>
+
+              <!-- New Comment Input Form -->
+              <form onsubmit="submitComment(event)" class="flex items-center gap-2 pt-1">
+                <input
+                  id="comment-input"
+                  type="text"
+                  placeholder="Ask a question or comment..."
+                  class="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-[#00a884] transition-colors"
+                />
+                <button type="submit" class="w-9 h-9 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shrink-0 shadow-xs transition-transform active:scale-95" aria-label="Post comment">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SEPARATE LOCATION & NAVIGATION CARD BELOW -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        
+        <!-- Header Row (Lighter grey background) -->
+        <div class="p-4 pb-3.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-white border border-emerald-200/50 text-emerald-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <svg class="w-5 h-5 fill-current text-emerald-600 shrink-0" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5-2.5z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900">Location & Navigation</h3>
+          </div>
+
+          <span class="text-xs font-semibold text-emerald-700 bg-white border border-emerald-200/80 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs">
+            <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="6" cy="19" r="3"/>
+              <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/>
+              <circle cx="18" cy="5" r="3"/>
+            </svg>
+            <span>1.2 km away</span>
+          </span>
+        </div>
+
+        <!-- Address & Content Body -->
+        <div class="p-4 space-y-3 bg-white">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">FULL ADDRESS</span>
+              <div class="space-y-0.5 text-sm">
+                <p class="font-normal text-slate-800 leading-snug">
+                  Block EP, Sector V, Salt Lake
+                </p>
+                <p class="text-xs font-medium text-slate-500 pt-0.5 leading-snug">
+                  Kolkata, West Bengal
+                </p>
+              </div>
+            </div>
+
+            <button
+              id="copy-address-btn"
+              onclick="copyAddress()"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+              class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors"
+            >
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span id="copy-btn-text">Copy</span>
+            </button>
+          </div>
+
+          <!-- Micro-Landmark Chips -->
+          <div class="flex items-center gap-2 pt-1 flex-wrap">
+            <span class="text-[11.5px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-full flex items-center gap-1">
+              🚌 Easy Transport Access
+            </span>
+            <span class="text-[11.5px] font-medium text-slate-600 bg-slate-100/80 px-2.5 py-1 rounded-full flex items-center gap-1">
+              🛡️ Verified Location
+            </span>
+          </div>
+        </div>
+
+        <!-- Google Maps View Embed Simulation -->
+        <div class="relative bg-slate-100 h-64 w-full border-t border-slate-200/60 overflow-hidden group">
+          <iframe
+            src="https://maps.google.com/maps?q=22.5726,88.4331&z=16&output=embed"
+            class="w-full h-full border-0 filter contrast-[1.02]"
+            title="Listing Location Map"
+            loading="lazy"
+          ></iframe>
+        </div>
+
+        <!-- Get Directions Button Footer -->
+        <div class="p-3 bg-slate-100/60 border-t border-slate-200/60">
+          <a
+            href="https://www.google.com/maps/dir/?api=1&destination=22.5726,88.4331"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#00a884] hover:bg-[#008f6f] text-white font-bold text-sm transition-all shadow-xs active:scale-98"
+          >
+            <svg class="w-4 h-4 fill-current text-white shrink-0" viewBox="0 0 24 24">
+              <path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9A1 1 0 003 5.8v13.4a1 1 0 001.26.96L9 18.9l6 2.1 5.64-1.9a1 1 0 00.36-.9V4.8a1 1 0 00-.5-.8zm-6.5 14.7l-4-1.4V5.3l4 1.4v11.0z"/>
+            </svg>
+            <span>Get Directions in Google Maps</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STICKY MOBILE BOTTOM CONTACT BAR -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-black/[0.09] p-3.5 px-4 flex items-center justify-between gap-3 z-40 shadow-2xl">
+      <div>
+        <span class="text-xs text-slate-400 font-medium block uppercase tracking-wider">Total Monthly Rent</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span class="text-2xl font-black text-slate-900">₹8,500</span>
+          <span class="text-xs text-slate-500 font-medium">/mo</span>
+        </div>
+      </div>
+
+      <a
+        href="https://wa.me/919876543210?text=Hi%2C%20I%20saw%20your%20listing%20on%20RoomFind."
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex-1 max-w-[210px] py-3 rounded-xl bg-[#00a884] hover:bg-[#008f6f] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-98"
+      >
+        <svg class="w-4 h-4 fill-current text-white shrink-0" viewBox="0 0 24 24">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+        </svg>
+        <span>Chat on WhatsApp</span>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Share Modal Mockup -->
+  <div id="share-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 hidden animate-fade-in">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="font-bold text-slate-900 text-base">Share Listing</h3>
+        <button onclick="closeShareModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-500">Share this single room listing with friends or potential roommates.</p>
+
+      <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+        <input type="text" readonly value="https://roomfind.app/listings/saltlake-sec5-8500" class="bg-transparent text-xs text-slate-600 flex-1 px-2 focus:outline-none" />
+        <button onclick="copyShareLink()" class="px-3 py-1.5 bg-[#00a884] text-white text-xs font-bold rounded-lg hover:bg-[#008f6f] transition-colors">Copy</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 pt-2">
+        <a href="https://wa.me/?text=Check%20out%20this%20room%20on%20RoomFind%3A%20https%3A%2F%2Froomfind.app%2Flistings%2Fsaltlake-sec5-8500" target="_blank" class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors">
+          <span>💬 WhatsApp</span>
+        </a>
+        <a href="#" onclick="showToast('Link ready for Twitter!'); closeShareModal(); return false;" class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-semibold transition-colors">
+          <span>🐦 Twitter</span>
+        </a>
+        <a href="#" onclick="showToast('Copied to clipboard!'); closeShareModal(); return false;" class="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors">
+          <span>📋 Copy Link</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal Mockup -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 hidden animate-fade-in">
+    <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white text-2xl font-bold p-2 z-50">✕</button>
+    <div class="relative max-w-lg w-full aspect-[4/3] flex items-center justify-center">
+      <img id="lightbox-img" src="" alt="Fullscreen room photo" class="max-h-full max-w-full object-contain rounded-lg" />
+    </div>
+    <p class="text-white/60 text-xs mt-3" id="lightbox-counter">Photo Preview</p>
+  </div>
+
+  <!-- Interactive Demo Script -->
+  <script>
+    // Sample Carousel Data
+    const photos = [
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
+    ];
+    let currentPhotoIndex = 0;
+
+    // Sample Comments State
+    let comments = [
+      {
+        id: 1,
+        author: "Rahul Verma",
+        text: "Is there any extra maintenance charge per month?",
+        time: "2h ago",
+        isOwner: false,
+        avatar: null
+      },
+      {
+        id: 2,
+        author: "Priya Sharma",
+        text: "Hi Rahul! No, maintenance and electricity up to 100 units are included in the ₹8,500 rent.",
+        time: "1h ago",
+        isOwner: true,
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+      },
+      {
+        id: 3,
+        author: "Ankit Das",
+        text: "Is two-wheeler parking space available inside the compound?",
+        time: "30m ago",
+        isOwner: false,
+        avatar: null
+      }
+    ];
+
+    let isLiked = false;
+    let likeCount = 12;
+    let isBookmarked = false;
+
+    // Initialize UI
+    window.addEventListener('DOMContentLoaded', () => {
+      renderThumbnails();
+      renderComments();
+    });
+
+    function changePhoto(direction) {
+      currentPhotoIndex = (currentPhotoIndex + direction + photos.length) % photos.length;
+      updatePhotoUI();
+    }
+
+    function selectPhoto(index) {
+      currentPhotoIndex = index;
+      updatePhotoUI();
+    }
+
+    function updatePhotoUI() {
+      document.getElementById('carousel-hero-img').src = photos[currentPhotoIndex];
+      document.getElementById('photo-counter').innerText = `${currentPhotoIndex + 1} / ${photos.length}`;
+      renderThumbnails();
+    }
+
+    function renderThumbnails() {
+      const container = document.getElementById('thumbnail-row');
+      container.innerHTML = photos.map((photo, i) => `
+        <button
+          onclick="selectPhoto(${i})"
+          class="relative rounded-lg overflow-hidden shrink-0 transition-all ${
+            currentPhotoIndex === i ? 'ring-2 ring-[#00a884] opacity-100' : 'opacity-60 hover:opacity-90'
+          }"
+          style="width: 60px; height: 44px;"
+        >
+          <img src="${photo}" alt="" class="w-full h-full object-cover" />
+        </button>
+      `).join('');
+    }
+
+    function toggleLike() {
+      isLiked = !isLiked;
+      likeCount += isLiked ? 1 : -1;
+      
+      const likeBtn = document.getElementById('like-btn');
+      const likeIcon = document.getElementById('like-icon');
+      const likeCountSpan = document.getElementById('like-count');
+
+      likeCountSpan.innerText = likeCount;
+
+      if (isLiked) {
+        likeIcon.setAttribute('fill', '#D85A30');
+        likeIcon.setAttribute('stroke', '#D85A30');
+        likeCountSpan.className = 'text-coral font-bold';
+        showToast('Added to liked listings');
+      } else {
+        likeIcon.setAttribute('fill', 'none');
+        likeIcon.setAttribute('stroke', 'currentColor');
+        likeCountSpan.className = 'text-slate-600';
+      }
+    }
+
+    function toggleBookmark() {
+      isBookmarked = !isBookmarked;
+      const icon = document.getElementById('bookmark-icon');
+      if (isBookmarked) {
+        icon.setAttribute('fill', '#00a884');
+        icon.setAttribute('stroke', '#00a884');
+        showToast('Saved to bookmarks');
+      } else {
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('stroke', 'currentColor');
+        showToast('Removed from bookmarks');
+      }
+    }
+
+    function focusCommentInput() {
+      document.getElementById('comment-input').focus();
+    }
+
+    function renderComments() {
+      const list = document.getElementById('comments-list');
+      document.getElementById('comment-counter-badge').innerText = `(${comments.length})`;
+
+      if (comments.length === 0) {
+        list.innerHTML = `
+          <div class="py-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            No comments yet. Be the first to ask the owner a question!
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = comments.map(c => `
+        <div class="flex items-start gap-2.5 group">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200/60 overflow-hidden">
+            ${c.avatar ? `<img src="${c.avatar}" class="w-full h-full object-cover" />` : `<span>${c.author.slice(0,2).toUpperCase()}</span>`}
+          </div>
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl px-3.5 py-2.5 flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-sm font-bold text-slate-900 truncate">${c.author}</span>
+                ${c.isOwner ? `
+                  <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-100/90 border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0">
+                    Owner
+                  </span>
+                ` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="text-[11px] text-slate-400">${c.time}</span>
+                <button
+                  onclick="deleteComment(${c.id})"
+                  title="Delete comment"
+                  class="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors ml-0.5"
+                  aria-label="Delete comment"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="text-[13.5px] text-slate-700 mt-1 leading-snug break-words">${c.text}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function submitComment(e) {
+      e.preventDefault();
+      const input = document.getElementById('comment-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const newComment = {
+        id: Date.now(),
+        author: "You",
+        text: text,
+        time: "just now",
+        isOwner: false,
+        avatar: null
+      };
+
+      comments.push(newComment);
+      input.value = '';
+      renderComments();
+      showToast('Comment posted!');
+      
+      // Auto scroll comments to bottom
+      const list = document.getElementById('comments-list');
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function deleteComment(id) {
+      comments = comments.filter(c => c.id !== id);
+      renderComments();
+      showToast('Comment deleted');
+    }
+
+    function copyAddress() {
+      const text = "Block EP, Sector V, Salt Lake, Kolkata, West Bengal";
+      navigator.clipboard.writeText(text);
+      document.getElementById('copy-btn-text').innerText = 'Copied!';
+      showToast('Address copied to clipboard!');
+      setTimeout(() => {
+        document.getElementById('copy-btn-text').innerText = 'Copy';
+      }, 2500);
+    }
+
+    function openShareModal() {
+      document.getElementById('share-modal').classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function copyShareLink() {
+      navigator.clipboard.writeText('https://roomfind.app/listings/saltlake-sec5-8500');
+      showToast('Share link copied!');
+      closeShareModal();
+    }
+
+    function openLightbox() {
+      document.getElementById('lightbox-img').src = photos[currentPhotoIndex];
+      document.getElementById('lightbox-counter').innerText = `Photo ${currentPhotoIndex + 1} of ${photos.length}`;
+      document.getElementById('lightbox-modal').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox-modal').classList.add('hidden');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bg = type === 'error' ? 'bg-red-500' : 'bg-[#00a884]';
+      
+      toast.className = `${bg} text-white text-[13px] font-medium px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3 animate-fade-in pointer-events-auto`;
+      toast.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white shrink-0">✕</button>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+  </script>
+
+</body>
+</html>
