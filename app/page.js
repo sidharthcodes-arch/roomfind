@@ -21,6 +21,7 @@ import {
   CheckCircle,
   Search,
   X,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -601,21 +602,25 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* ── Filter chips ── */}
-      <div className="sticky top-[57px] z-30 bg-white border-b border-black/[0.09] px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setActiveFilter(f)}
-            className={`shrink-0 px-3.5 py-1.5 rounded-xl text-[13px] font-medium transition-colors ${
-              activeFilter === f
-                ? "bg-brand text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      {/* ── Filter chips with Scroll Edge Affordance ── */}
+      <div className="sticky top-[57px] z-30 bg-white/95 backdrop-blur-md border-b border-black/[0.09] relative">
+        <div className="px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide relative z-0">
+          {FILTERS.map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-xl text-[13px] font-medium transition-all active:scale-95 ${
+                activeFilter === f
+                  ? "bg-brand text-white shadow-xs"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        {/* Right-edge gradient fade cue for horizontal scroll affordance */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10" />
       </div>
 
       {/* ── Radius selector sub-bar for Near You filter ── */}
