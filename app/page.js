@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { filterByDistance } from "@/lib/utils";
+import { filterByDistance, filterBySearch } from "@/lib/utils";
 import ShareModal from "@/components/ShareModal";
 import TwitterImageGrid from "@/components/TwitterImageGrid";
 import ImageLightboxModal from "@/components/ImageLightboxModal";
@@ -19,6 +19,8 @@ import {
   Bookmark,
   Plus,
   CheckCircle,
+  Search,
+  X,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
@@ -47,11 +49,11 @@ function initials(name) {
 
 const FILTERS = [
   "All",
+  "Near you",
   "Single",
   "Shared",
   "Furnished",
   "Under ₹5k",
-  "Near you",
 ];
 
 // ─── skeleton card ───────────────────────────────────────────────────────────
@@ -386,9 +388,15 @@ export default function HomePage() {
   const [radiusKm, setRadiusKm] = useState(10);
   const [hasNotif, setHasNotif] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [shareListing, setShareListing] = useState(null);
   const pageRef = useRef(0);
   const sentinelRef = useRef(null);
+
+  const displayListings = useMemo(() => {
+    if (!searchQuery.trim()) return listings;
+    return filterBySearch(listings, searchQuery.trim());
+  }, [listings, searchQuery]);
 
   // Geolocation
   useEffect(() => {
@@ -559,18 +567,39 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
-      {/* ── Top bar ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center">
+      {/* ── Top Header ── */}
+      <header className="sticky top-0 z-30 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
+        {/* Left: Brand Logo */}
+        <Link href="/" className="flex items-center shrink-0">
           <RoomFindLogo showText={true} />
         </Link>
-        <button className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
-          <Bell className="w-5 h-5 text-slate-600" />
-          {hasNotif && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-coral border-2 border-white" />
-          )}
-        </button>
-      </div>
+
+        {/* Right: Rounded Square Action Buttons (Search Link + Notification Bell) */}
+        <div className="flex items-center gap-2">
+          {/* Rounded Square Search Icon button linking directly to /search page */}
+          <Link
+            href="/search"
+            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition-all border border-black/[0.04]"
+            title="Search listings"
+            aria-label="Search listings"
+          >
+            <Search className="w-4.5 h-4.5 text-slate-700" />
+          </Link>
+
+          {/* Rounded Square Notification Bell button */}
+          <button
+            onClick={() => setHasNotif(false)}
+            className="relative w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition-all border border-black/[0.04]"
+            title="Notifications"
+            aria-label="Notifications"
+          >
+            <Bell className="w-4.5 h-4.5 text-slate-700" />
+            {hasNotif && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-coral border-2 border-white animate-pulse" />
+            )}
+          </button>
+        </div>
+      </header>
 
       {/* ── Filter chips ── */}
       <div className="sticky top-[57px] z-30 bg-white border-b border-black/[0.09] px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide">
@@ -578,7 +607,7 @@ export default function HomePage() {
           <button
             key={f}
             onClick={() => setActiveFilter(f)}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
+            className={`shrink-0 px-3.5 py-1.5 rounded-xl text-[13px] font-medium transition-colors ${
               activeFilter === f
                 ? "bg-brand text-white"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -634,17 +663,25 @@ export default function HomePage() {
               Try again
             </button>
           </div>
-        ) : listings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+        ) : displayListings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl p-6 border border-slate-200/80 my-3 shadow-xs">
             <MapPin className="w-10 h-10 text-slate-300 mb-3" />
-            <p className="text-slate-600 font-medium">No listings found</p>
-            <p className="text-slate-400 text-sm mt-1">
-              Try a different filter
+            <p className="text-slate-800 font-bold text-[15px] mb-1">No listings found</p>
+            <p className="text-slate-500 text-[13px] max-w-xs mb-4">
+              {searchQuery ? `No rooms matched "${searchQuery}"` : "Try a different filter"}
             </p>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-semibold text-[13px] transition-colors shadow-sm"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
           <>
-            {listings.map((listing) => (
+            {displayListings.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
