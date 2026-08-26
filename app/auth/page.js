@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { Home, Loader2, MapPin, CheckCircle, ArrowLeft, ShieldCheck, Heart, Sparkles } from 'lucide-react'
 import CountryPhoneInput from '@/components/CountryPhoneInput'
+import { RoomFindLogo } from '@/components/Logo'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -192,11 +193,8 @@ export default function AuthPage() {
 
           {/* Top Brand Logo */}
           <div className="relative z-10 flex items-center justify-between mb-10 lg:mb-0">
-            <Link href="/" className="flex items-center gap-2.5 text-white font-bold text-[18px] tracking-tight">
-              <div className="w-9 h-9 rounded-xl bg-brand flex items-center justify-center shadow-lg shadow-brand/30">
-                <Home className="w-5 h-5 text-white" />
-              </div>
-              <span>RoomFind</span>
+            <Link href="/" className="flex items-center">
+              <RoomFindLogo className="h-8 w-auto" showText={true} textClassName="text-[20px] font-extrabold tracking-tight" />
             </Link>
             <Link href="/" className="text-xs text-white/70 hover:text-white flex items-center gap-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> Back to listings

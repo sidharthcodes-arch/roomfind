@@ -9,6 +9,7 @@ import { filterByDistance } from "@/lib/utils";
 import ShareModal from "@/components/ShareModal";
 import TwitterImageGrid from "@/components/TwitterImageGrid";
 import ImageLightboxModal from "@/components/ImageLightboxModal";
+import { RoomFindLogo } from "@/components/Logo";
 import {
   Bell,
   MapPin,
@@ -560,9 +561,9 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
       {/* ── Top bar ── */}
       <div className="sticky top-0 z-30 bg-white border-b border-black/[0.09] px-4 py-3 flex items-center justify-between">
-        <h1 className="text-[20px] font-bold text-slate-900 tracking-tight">
-          RoomFind
-        </h1>
+        <Link href="/" className="flex items-center">
+          <RoomFindLogo showText={true} />
+        </Link>
         <button className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors">
           <Bell className="w-5 h-5 text-slate-600" />
           {hasNotif && (
