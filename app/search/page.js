@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import ShareModal from "@/components/ShareModal";
-import TwitterImageGrid from "@/components/TwitterImageGrid";
-import ImageLightboxModal from "@/components/ImageLightboxModal";
 import { parseQueryLocally } from "@/lib/searchParser";
 import { geocodeLocation } from "@/lib/geoapify";
 import { fetchSuggestionsWithCache } from "@/lib/autosuggestCache";
+import ListingCard from "@/components/ListingCard";
 import {
   Search as SearchIcon,
   X,
@@ -27,28 +26,12 @@ import {
   TrendingUp,
   Navigation,
   ArrowLeft,
+  ChevronRight,
+  Flame,
+  Building2,
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
-
-function timeAgo(dateStr) {
-  if (!dateStr) return "";
-  const diff = (Date.now() - new Date(dateStr)) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function initials(name) {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 const TABS = [
   "Top",
@@ -61,6 +44,7 @@ const TABS = [
   "Furnished",
   "Under ₹10k",
 ];
+
 const TRENDING_LOCATIONS = [
   "Court More",
   "Darjeeling More",
@@ -89,241 +73,6 @@ function SearchCardSkeleton() {
   );
 }
 
-function SearchResultCard({ listing, currentUserId, onLikeToggle, onShare }) {
-  const router = useRouter();
-  const [liked, setLiked] = useState(listing._liked ?? false);
-  const [likeCount, setLikeCount] = useState(listing._likeCount ?? 0);
-  const [saved, setSaved] = useState(false);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  const isTaken =
-    listing.status === "taken" ||
-    listing.status === "booked" ||
-    listing.is_available === false;
-  const photos = listing.photos ?? [];
-  const ownerName = listing.users?.full_name ?? "Owner";
-  const ownerInitials = initials(ownerName);
-
-  useEffect(() => {
-    setLiked(listing._liked ?? false);
-    setLikeCount(listing._likeCount ?? 0);
-  }, [listing._liked, listing._likeCount]);
-
-  const handleLike = async (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (!currentUserId) return;
-    const next = !liked;
-    setLiked(next);
-    setLikeCount((c) => c + (next ? 1 : -1));
-    onLikeToggle?.(listing.id, next);
-    if (next) {
-      await supabase
-        .from("listing_likes")
-        .insert({ user_id: currentUserId, listing_id: listing.id });
-    } else {
-      await supabase
-        .from("listing_likes")
-        .delete()
-        .eq("user_id", currentUserId)
-        .eq("listing_id", listing.id);
-    }
-  };
-
-  const handleSave = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setSaved((s) => !s);
-  };
-
-  const handleImageClick = (index) => {
-    setLightboxIndex(index);
-    setIsLightboxOpen(true);
-  };
-
-  const whatsappPhone = listing.users?.phone_number
-    ? listing.users.phone_number.replace(/\D/g, "")
-    : "";
-  const whatsappHref = whatsappPhone
-    ? `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-        `Hi, I'm interested in your room listing "${listing.title}" on RoomFind.`,
-      )}`
-    : null;
-
-  return (
-    <article
-      onClick={() => router.push(`/listings/${listing.id}`)}
-      className="bg-white rounded-2xl border border-black/[0.09] p-4 mb-3 transition-shadow hover:shadow-md cursor-pointer relative"
-    >
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {listing.users?.profile_photo ? (
-            <img
-              src={listing.users.profile_photo}
-              alt={ownerName}
-              className="w-9 h-9 rounded-full object-cover shrink-0 border border-black/[0.08]"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-brand text-white font-bold text-[12px] flex items-center justify-center shrink-0">
-              {ownerInitials}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <span className="font-semibold text-slate-900 text-[13.5px] truncate">
-                {ownerName}
-              </span>
-              <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0 fill-brand/10" />
-            </div>
-            <span className="text-[11px] text-slate-400 block">
-              {timeAgo(listing.created_at)}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
-              isTaken
-                ? "bg-slate-100 text-slate-500 border-slate-200"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200"
-            }`}
-          >
-            {isTaken ? "Taken" : "Available"}
-          </span>
-
-          <button
-            onClick={handleSave}
-            className={`p-1.5 rounded-full hover:bg-slate-100 transition-colors ${
-              saved ? "text-brand" : "text-slate-400"
-            }`}
-          >
-            <Bookmark
-              className="w-4 h-4"
-              fill={saved ? "currentColor" : "none"}
-            />
-          </button>
-        </div>
-      </div>
-
-      {photos.length > 0 ? (
-        <div className="mb-3 rounded-xl overflow-hidden">
-          <TwitterImageGrid photos={photos} onImageClick={handleImageClick} />
-        </div>
-      ) : (
-        <div className="w-full h-48 bg-slate-100 rounded-xl mb-3 flex items-center justify-center text-slate-400 text-[13px]">
-          No photos available
-        </div>
-      )}
-
-      {isLightboxOpen && (
-        <ImageLightboxModal
-          photos={photos}
-          initialIndex={lightboxIndex}
-          onClose={() => setIsLightboxOpen(false)}
-        />
-      )}
-
-      <div className="space-y-1 mb-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="font-bold text-slate-900 text-[16px] truncate">
-            {listing.title}
-          </h3>
-          <div className="text-right shrink-0">
-            <span className="text-[17px] font-extrabold text-brand">
-              ₹{Number(listing.price).toLocaleString("en-IN")}
-            </span>
-            <span className="text-[11px] text-slate-400 font-normal">/mo</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1 text-[12px] text-slate-500">
-          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate">{listing.address}</span>
-        </div>
-
-        <div className="flex items-center gap-2 pt-1 flex-wrap">
-          {listing.bhk_type && (
-            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[11px] font-bold">
-              {listing.bhk_type}
-            </span>
-          )}
-          {listing.room_type && (
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium capitalize">
-              {listing.room_type} Occupancy
-            </span>
-          )}
-          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium">
-            {listing.furnished ? "Furnished" : "Unfurnished"}
-          </span>
-          {listing.gender_preference && listing.gender_preference !== "all" && (
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[11px] font-medium capitalize">
-              {listing.gender_preference} Preferred
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between border-t border-black/[0.06] pt-3 mt-2">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-rose-500 transition-colors text-[12.5px] font-medium"
-          >
-            <Heart
-              className={`w-4 h-4 ${
-                liked ? "fill-rose-500 text-rose-500" : ""
-              }`}
-            />
-            <span>{likeCount}</span>
-          </button>
-
-          <Link
-            href={`/listings/${listing.id}#comments`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors text-[12.5px] font-medium"
-          >
-            <MessageCircle className="w-4 h-4 text-slate-400" />
-            <span>{listing._commentCount ?? 0}</span>
-          </Link>
-
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onShare?.(listing);
-            }}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors text-[12.5px] font-medium"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Share</span>
-          </button>
-        </div>
-
-        {whatsappHref ? (
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white font-semibold text-[12px] hover:bg-emerald-600 transition-colors"
-          >
-            <MessageCircle className="w-3.5 h-3.5 fill-white" />
-            <span>WhatsApp</span>
-          </a>
-        ) : (
-          <span className="text-[11px] text-slate-400 italic">No contact</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
 export default function SearchPage() {
   const { user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -340,13 +89,75 @@ export default function SearchPage() {
   const selectedSuggestionRef = useRef(null);
 
   const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isAiParsing, setIsAiParsing] = useState(false);
   const [shareListing, setShareListing] = useState(null);
 
   const [resolvedLocationName, setResolvedLocationName] = useState(null);
+
+  // Dynamic real-time database metrics & popular locations
+  const [dbStats, setDbStats] = useState({
+    totalCount: 0,
+    singleCount: 0,
+    sharedCount: 0,
+    furnishedCount: 0,
+    under5kCount: 0,
+    popularLocations: [],
+  });
+
+  useEffect(() => {
+    async function loadRealDbStats() {
+      try {
+        const { data, error } = await supabase
+          .from("listings")
+          .select("id, price, room_type, furnished, location_name, city");
+
+        if (!error && data) {
+          const single = data.filter(
+            (l) => (l.room_type || "").toLowerCase() === "single",
+          ).length;
+          const shared = data.filter(
+            (l) => (l.room_type || "").toLowerCase() === "shared",
+          ).length;
+          const furnished = data.filter((l) => l.furnished === true).length;
+          const under5k = data.filter(
+            (l) => l.price && Number(l.price) <= 5000,
+          ).length;
+
+          const locationMap = {};
+          data.forEach((l) => {
+            const rawLoc = l.location_name || l.city || "";
+            if (rawLoc.trim()) {
+              const cleaned = rawLoc.split(",")[0].trim();
+              if (cleaned.length >= 3) {
+                locationMap[cleaned] = (locationMap[cleaned] || 0) + 1;
+              }
+            }
+          });
+
+          const sortedLocs = Object.entries(locationMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([name, count]) => ({ name, count }));
+
+          setDbStats({
+            totalCount: data.length,
+            singleCount: single,
+            sharedCount: shared,
+            furnishedCount: furnished,
+            under5kCount: under5k,
+            popularLocations: sortedLocs,
+          });
+        }
+      } catch (e) {
+        console.error("Error loading real db stats:", e);
+      }
+    }
+    loadRealDbStats();
+  }, []);
 
   const pageRef = useRef(0);
   const sentinelRef = useRef(null);
@@ -404,10 +215,7 @@ export default function SearchPage() {
             };
             userGpsRef.current = { lat: ipData.lat, lng: ipData.lng };
             try {
-              localStorage.setItem(
-                "roomfind_user_gps",
-                JSON.stringify(ipData),
-              );
+              localStorage.setItem("roomfind_user_gps", JSON.stringify(ipData));
             } catch (_) {}
           }
         }
@@ -524,6 +332,7 @@ export default function SearchPage() {
 
   const fetchPage = useCallback(
     async (page, replace = false, customQuery = null) => {
+      setHasSearched(true);
       if (replace) {
         setLoading(true);
       } else {
@@ -751,7 +560,9 @@ export default function SearchPage() {
 
       if (fetchedListings.length > 0) {
         const ids = fetchedListings.map((l) => l.id);
-        let likesData = [], userLikes = [], commentsData = [];
+        let likesData = [],
+          userLikes = [],
+          commentsData = [];
         try {
           const [likesRes, userLikesRes, commentsRes] = await Promise.all([
             supabase
@@ -809,9 +620,18 @@ export default function SearchPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    pageRef.current = 0;
-    setLoading(true);
-    fetchPage(0, true);
+    if (
+      hasSearched ||
+      searchQuery.trim() ||
+      activeTab !== "Top" ||
+      activeFilterCount > 0
+    ) {
+      pageRef.current = 0;
+      setLoading(true);
+      fetchPage(0, true);
+    } else {
+      setLoading(false);
+    }
   }, [activeTab, maxPrice, furnishedOnly, genderFilter, user?.id, authLoading]);
 
   const handleResetFilters = () => {
@@ -820,11 +640,40 @@ export default function SearchPage() {
     setGenderFilter("all");
   };
 
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setShowDropdown(false);
+    selectedSuggestionRef.current = null;
+    setResolvedLocationName(null);
+    if (activeTab === "Top" && activeFilterCount === 0) {
+      setHasSearched(false);
+      setListings([]);
+    }
+  };
+
   const handleTrendingClick = (locationName) => {
     selectedSuggestionRef.current = locationName;
     searchQueryRef.current = locationName;
     setSearchQuery(locationName);
     fetchPage(0, true, locationName);
+  };
+
+  const handleCategoryFilterClick = (tabName) => {
+    selectedSuggestionRef.current = null;
+    searchQueryRef.current = "";
+    setSearchQuery("");
+    setResolvedLocationName(null);
+    setHasSearched(true);
+    setActiveTab(tabName);
+  };
+
+  const handlePriceFilterClick = (priceLimit) => {
+    selectedSuggestionRef.current = null;
+    searchQueryRef.current = "";
+    setSearchQuery("");
+    setResolvedLocationName(null);
+    setHasSearched(true);
+    setMaxPrice(priceLimit.toString());
   };
 
   const activeFilterCount =
@@ -861,29 +710,34 @@ export default function SearchPage() {
               <SearchIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none z-10" />
             )}
             <input
-              type="search"
+              type="text"
               enterKeyHint="search"
               value={searchQuery}
               onChange={(e) => {
+                const val = e.target.value;
                 selectedSuggestionRef.current = null;
-                setSearchQuery(e.target.value);
+                setSearchQuery(val);
+                if (
+                  !val.trim() &&
+                  activeTab === "Top" &&
+                  activeFilterCount === 0
+                ) {
+                  setHasSearched(false);
+                  setListings([]);
+                }
               }}
               placeholder={
                 isAiParsing
                   ? "AI Understanding query..."
                   : "Type e.g. '1bhk in HSR under 15k'"
               }
-              className="w-full pl-8 pr-16 py-2 bg-slate-100 hover:bg-slate-200/70 focus:bg-white text-slate-900 text-[13.5px] font-medium placeholder:text-slate-400 rounded-xl border border-transparent focus:border-brand outline-none transition-all shadow-inner"
+              className="w-full pl-8 pr-16 py-2 bg-slate-100 hover:bg-slate-200/70 focus:bg-white text-slate-900 text-[13.5px] font-medium placeholder:text-slate-400 rounded-xl border border-transparent focus:border-brand outline-none transition-all shadow-inner [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-              {searchQuery && (
+              {(searchQuery || resolvedLocationName) && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setShowDropdown(false);
-                    selectedSuggestionRef.current = null;
-                  }}
+                  onClick={handleClearSearch}
                   className="p-1 text-slate-400 hover:text-slate-600 rounded-full transition-colors"
                   title="Clear search"
                 >
@@ -985,8 +839,10 @@ export default function SearchPage() {
               </span>
             </div>
             <button
-              onClick={() => setResolvedLocationName(null)}
-              className="text-slate-400 hover:text-slate-600 p-0.5"
+              type="button"
+              onClick={handleClearSearch}
+              className="text-emerald-700 hover:text-emerald-950 p-0.5 shrink-0 transition-colors"
+              title="Dismiss location banner"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1075,14 +931,17 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Trending Locations Chips */}
+      {/* Dynamic Trending Locations Chips from Database */}
       <div className="px-4 py-3 border-b border-black/[0.05] bg-white/50">
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
           <TrendingUp className="w-3.5 h-3.5 text-brand" />
           <span>Trending Areas</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {TRENDING_LOCATIONS.map((loc) => (
+          {(dbStats.popularLocations.length > 0
+            ? dbStats.popularLocations.map((loc) => loc.name)
+            : TRENDING_LOCATIONS
+          ).map((loc) => (
             <button
               key={loc}
               onClick={() => handleTrendingClick(loc)}
@@ -1095,7 +954,183 @@ export default function SearchPage() {
       </div>
 
       <main className="p-4">
-        {loading ? (
+        {!hasSearched &&
+        !searchQuery.trim() &&
+        activeTab === "Top" &&
+        activeFilterCount === 0 ? (
+          <div className="space-y-5 -mx-4">
+            {/* ── 1. Dynamic Horizontal Spotlight Cards Carousel (Real DB Counts) ── */}
+            <div className="px-4">
+              <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
+                {/* Card 1: Top Dynamic Location */}
+                <button
+                  onClick={() =>
+                    handleTrendingClick(
+                      dbStats.popularLocations[0]?.name || "Court More",
+                    )
+                  }
+                  className="shrink-0 w-64 bg-slate-900 text-white rounded-2xl p-3.5 relative overflow-hidden text-left hover:bg-slate-800 transition-all active:scale-[0.98] border border-slate-800 shadow-md group"
+                >
+                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-brand" />
+                  <div className="pl-1.5 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>Top Location</span>
+                      <span className="text-brand font-semibold">
+                        Active Feed
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-[15px] text-white group-hover:text-brand transition-colors truncate">
+                      {dbStats.popularLocations[0]?.name
+                        ? `${dbStats.popularLocations[0].name} & Nearby`
+                        : "Court More & Airview"}
+                    </h4>
+                    <p className="text-[12px] text-slate-400">
+                      {dbStats.popularLocations[0]?.count
+                        ? `${dbStats.popularLocations[0].count} rooms currently listed`
+                        : `${dbStats.totalCount || 0} total active rooms`}
+                    </p>
+                  </div>
+                </button>
+
+                {/* Card 2: Furnished Rooms */}
+                <button
+                  onClick={() => handleCategoryFilterClick("Furnished")}
+                  className="shrink-0 w-64 bg-slate-900 text-white rounded-2xl p-3.5 relative overflow-hidden text-left hover:bg-slate-800 transition-all active:scale-[0.98] border border-slate-800 shadow-md group"
+                >
+                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-rose-500" />
+                  <div className="pl-1.5 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>Furnished Rooms</span>
+                      <span className="text-rose-400 font-semibold">
+                        Verified
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-[15px] text-white group-hover:text-rose-400 transition-colors">
+                      Fully Furnished Stays
+                    </h4>
+                    <p className="text-[12px] text-slate-400">
+                      {dbStats.furnishedCount} verified listings in DB
+                    </p>
+                  </div>
+                </button>
+
+                {/* Card 3: Student Deals */}
+                <button
+                  onClick={() => handlePriceFilterClick(5000)}
+                  className="shrink-0 w-64 bg-slate-900 text-white rounded-2xl p-3.5 relative overflow-hidden text-left hover:bg-slate-800 transition-all active:scale-[0.98] border border-slate-800 shadow-md group"
+                >
+                  <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-500" />
+                  <div className="pl-1.5 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <span>Budget Deals</span>
+                      <span className="text-blue-400 font-semibold">
+                        Low Price
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-[15px] text-white group-hover:text-blue-400 transition-colors">
+                      Rooms Under ₹5,000/mo
+                    </h4>
+                    <p className="text-[12px] text-slate-400">
+                      {dbStats.under5kCount} budget listings in DB
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* ── 2. Twitter-Style Section: Dynamic Database Feed ── */}
+            <div className="bg-white border-y border-black/[0.08] divide-y divide-black/[0.05]">
+              <div className="px-4 py-3 bg-slate-50/70">
+                <h3 className="font-extrabold text-slate-900 text-[16px]">
+                  Find what you're looking for
+                </h3>
+              </div>
+
+              {/* Item 1 & 2: Top Locations from DB */}
+              {dbStats.popularLocations.slice(0, 2).map((loc, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleTrendingClick(loc.name)}
+                  className="w-full px-4 py-3.5 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+                >
+                  <div className="space-y-0.5 min-w-0 pr-3">
+                    <span className="text-[11px] font-medium text-slate-400 block">
+                      Popular Location #{idx + 1} · Live Database
+                    </span>
+                    <h4 className="font-bold text-slate-900 text-[14.5px] truncate group-hover:text-brand transition-colors">
+                      Available rooms near {loc.name}
+                    </h4>
+                    <p className="text-[12px] text-slate-500">
+                      {loc.count} active listing{loc.count > 1 ? "s" : ""} in
+                      database
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 shrink-0" />
+                </button>
+              ))}
+
+              {/* Item 3: Single Rooms */}
+              <button
+                onClick={() => handleCategoryFilterClick("Single")}
+                className="w-full px-4 py-3.5 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+              >
+                <div className="space-y-0.5 min-w-0 pr-3">
+                  <span className="text-[11px] font-medium text-slate-400 block">
+                    Occupancy · Single
+                  </span>
+                  <h4 className="font-bold text-slate-900 text-[14.5px] truncate group-hover:text-brand transition-colors">
+                    Private Single Occupancy Rooms
+                  </h4>
+                  <p className="text-[12px] text-slate-500">
+                    {dbStats.singleCount} active single room listing
+                    {dbStats.singleCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 shrink-0" />
+              </button>
+
+              {/* Item 4: Shared Rooms */}
+              <button
+                onClick={() => handleCategoryFilterClick("Shared")}
+                className="w-full px-4 py-3.5 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+              >
+                <div className="space-y-0.5 min-w-0 pr-3">
+                  <span className="text-[11px] font-medium text-slate-400 block">
+                    Occupancy · Shared
+                  </span>
+                  <h4 className="font-bold text-slate-900 text-[14.5px] truncate group-hover:text-brand transition-colors">
+                    Budget Shared Rooms & PGs
+                  </h4>
+                  <p className="text-[12px] text-slate-500">
+                    {dbStats.sharedCount} active shared room listing
+                    {dbStats.sharedCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 shrink-0" />
+              </button>
+
+              {/* Item 5: Budget Deals */}
+              <button
+                onClick={() => handlePriceFilterClick(5000)}
+                className="w-full px-4 py-3.5 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+              >
+                <div className="space-y-0.5 min-w-0 pr-3">
+                  <span className="text-[11px] font-medium text-slate-400 block">
+                    Budget Filter · Under ₹5,000
+                  </span>
+                  <h4 className="font-bold text-slate-900 text-[14.5px] truncate group-hover:text-brand transition-colors">
+                    Affordable Stays under ₹5,000/month
+                  </h4>
+                  <p className="text-[12px] text-slate-500">
+                    {dbStats.under5kCount} active budget listing
+                    {dbStats.under5kCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 shrink-0" />
+              </button>
+            </div>
+          </div>
+        ) : loading ? (
           <>
             <SearchCardSkeleton />
             <SearchCardSkeleton />
@@ -1104,7 +1139,7 @@ export default function SearchPage() {
         ) : listings.length > 0 ? (
           <div>
             {listings.map((item) => (
-              <SearchResultCard
+              <ListingCard
                 key={item.id}
                 listing={item}
                 currentUserId={user?.id}
@@ -1127,7 +1162,7 @@ export default function SearchPage() {
           </div>
         ) : (
           <div className="py-12 text-center space-y-3 bg-white rounded-2xl border border-black/[0.09] p-6">
-            <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
               <SearchIcon className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-slate-900 text-[15px]">

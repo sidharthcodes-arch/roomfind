@@ -9,8 +9,13 @@ const dmSans = DM_Sans({
 })
 
 export const metadata = {
-  title: 'RoomFind',
-  description: 'Find rooms near you',
+  title: 'RoomFind - Find verified rooms & PGs near you',
+  description: 'Find verified rooms and PGs near you with real-time stats',
+  icons: {
+    icon: '/logo-icon.png',
+    shortcut: '/logo-icon.png',
+    apple: '/logo-icon.png',
+  },
 }
 
 export default function RootLayout({ children }) {
