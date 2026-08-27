@@ -533,18 +533,22 @@ export default function HomePage() {
   }, [hasMore, loadingMore, loading, fetchPage]);
 
   const handleFilterClick = async (filter) => {
-    setActiveFilter(filter);
     if (filter === "Near you") {
       const cached = getValidCachedLocation();
       const isCurrentIp = cached ? !!cached.isIpFallback : isIpFallback;
 
-      // If no location OR current location is from IP fallback, force fresh GPS acquisition and hold loading UI
+      // If no location OR current location is from IP fallback, reset stale IP state, activate loading UI, & acquire fresh GPS
       if (!cached || isCurrentIp || userLat == null || userLng == null) {
+        setUserLat(null);
+        setUserLng(null);
         setIsLocating(true);
+        setActiveFilter(filter);
         await acquireLocation(true);
         setIsLocating(false);
+        return;
       }
     }
+    setActiveFilter(filter);
   };
 
   return (
