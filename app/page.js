@@ -213,12 +213,23 @@ export default function HomePage() {
           setLocationFailed(false);
           return cached;
         }
+      } else {
+        // When forcing a fresh location check, clear stale IP fallback cache
+        try {
+          const raw = localStorage.getItem(GPS_CACHE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.isIpFallback) {
+              localStorage.removeItem(GPS_CACHE_KEY);
+            }
+          }
+        } catch (_) {}
       }
 
       setIsLocating(true);
       setLocationFailed(false);
 
-      // Primary Attempt: High-Accuracy Device Satellite GPS (Stays in loading state until user allows or denies)
+      // Primary Attempt: High-Accuracy Device Satellite GPS (10s timeout, maximumAge 0)
       const gpsPromise = new Promise((resolve) => {
         if (typeof navigator === "undefined" || !navigator.geolocation) {
           resolve(null);
@@ -234,7 +245,7 @@ export default function HomePage() {
             });
           },
           () => resolve(null),
-          { enableHighAccuracy: true, maximumAge: 0 },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         );
       });
 
