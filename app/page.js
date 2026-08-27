@@ -491,7 +491,7 @@ export default function HomePage() {
     );
   };
 
-  // Initial load / filter change / user auth resolution
+  // Initial load / filter change / location resolution / user auth resolution
   useEffect(() => {
     if (authLoading) return;
     pageRef.current = 0;
@@ -500,7 +500,7 @@ export default function HomePage() {
     setFetchError(null);
     setLoading(true);
     fetchPage(0, true).finally(() => setLoading(false));
-  }, [activeFilter, radiusKm, user?.id, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFilter, radiusKm, userLat, userLng, user?.id, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Infinite scroll sentinel
   useEffect(() => {
@@ -522,12 +522,13 @@ export default function HomePage() {
   }, [hasMore, loadingMore, loading, fetchPage]);
 
   const handleFilterClick = async (filter) => {
-    setActiveFilter(filter);
     if (filter === "Near you") {
-      const cached = getValidCachedLocation();
-      if (!cached && (userLat == null || userLng == null)) {
+      if (userLat == null || userLng == null) {
         await acquireLocation(true);
       }
+      setActiveFilter(filter);
+    } else {
+      setActiveFilter(filter);
     }
   };
 
