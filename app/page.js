@@ -9,6 +9,7 @@ import { filterByDistance, filterBySearch } from "@/lib/utils";
 import ShareModal from "@/components/ShareModal";
 import TwitterImageGrid from "@/components/TwitterImageGrid";
 import ImageLightboxModal from "@/components/ImageLightboxModal";
+import NotificationModal from "@/components/NotificationModal";
 import { RoomFindLogo } from "@/components/Logo";
 import {
   Bell,
@@ -154,6 +155,7 @@ export default function HomePage() {
   const [locationFailed, setLocationFailed] = useState(false);
   const [radiusKm, setRadiusKm] = useState(10);
   const [hasNotif, setHasNotif] = useState(true);
+  const [showNotifModal, setShowNotifModal] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [shareListing, setShareListing] = useState(null);
@@ -555,7 +557,10 @@ export default function HomePage() {
 
           {/* Rounded Square Notification Bell button */}
           <button
-            onClick={() => setHasNotif(false)}
+            onClick={() => {
+              setHasNotif(false);
+              setShowNotifModal(true);
+            }}
             className="relative w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-700 transition-all border border-black/[0.04]"
             title="Notifications"
             aria-label="Notifications"
@@ -744,6 +749,12 @@ export default function HomePage() {
         isOpen={!!shareListing}
         listing={shareListing}
         onClose={() => setShareListing(null)}
+      />
+
+      {/* ── Notification Modal ── */}
+      <NotificationModal
+        isOpen={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
       />
     </div>
   );
