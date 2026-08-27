@@ -201,15 +201,15 @@ export default function HomePage() {
     return null;
   }, []);
 
-  // Acquire / refresh GPS location with cache support & parallel IP race
+  // Acquire / refresh GPS location: Prioritize high-accuracy GPS (6s timeout) before IP fallback
   const acquireLocation = useCallback(
     async (forceFresh = false) => {
       if (!forceFresh) {
         const cached = getValidCachedLocation();
-        if (cached) {
+        if (cached && !cached.isIpFallback) {
           setUserLat(cached.lat);
           setUserLng(cached.lng);
-          setIsIpFallback(!!cached.isIpFallback);
+          setIsIpFallback(false);
           setLocationFailed(false);
           return cached;
         }
@@ -218,10 +218,7 @@ export default function HomePage() {
       setIsLocating(true);
       setLocationFailed(false);
 
-      // Race 1: Fast IP Lookup (~150ms)
-      const ipPromise = fetchIpLocationFallback();
-
-      // Race 2: High-accuracy GPS (~1-3s)
+      // Primary Attempt: High-Accuracy Device Satellite GPS (6s window)
       const gpsPromise = new Promise((resolve) => {
         if (typeof navigator === "undefined" || !navigator.geolocation) {
           resolve(null);
@@ -229,48 +226,45 @@ export default function HomePage() {
         }
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const coords = {
+            resolve({
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
               isIpFallback: false,
               timestamp: Date.now(),
-            };
-            resolve(coords);
+            });
           },
           () => resolve(null),
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
+          { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 },
         );
       });
 
-      // Execute concurrently: take whichever finishes first
-      const fastest = await Promise.race([
-        ipPromise,
-        gpsPromise.then((gpsRes) => (gpsRes ? gpsRes : ipPromise)),
-      ]);
+      const gpsResult = await gpsPromise;
 
-      if (fastest) {
+      if (gpsResult) {
         try {
-          localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(fastest));
+          localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(gpsResult));
         } catch (_) {}
-        setUserLat(fastest.lat);
-        setUserLng(fastest.lng);
-        setIsIpFallback(!!fastest.isIpFallback);
+        setUserLat(gpsResult.lat);
+        setUserLng(gpsResult.lng);
+        setIsIpFallback(false);
         setIsLocating(false);
         setLocationFailed(false);
+        return gpsResult;
+      }
 
-        // If fast result was IP fallback, quietly upgrade when precise GPS finishes
-        gpsPromise.then((gpsRes) => {
-          if (gpsRes) {
-            try {
-              localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(gpsRes));
-            } catch (_) {}
-            setUserLat(gpsRes.lat);
-            setUserLng(gpsRes.lng);
-            setIsIpFallback(false);
-          }
-        });
+      // Secondary Attempt: If GPS timed out or failed after 6s, fallback to IP Geolocation
+      const ipResult = await fetchIpLocationFallback();
 
-        return fastest;
+      if (ipResult) {
+        try {
+          localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(ipResult));
+        } catch (_) {}
+        setUserLat(ipResult.lat);
+        setUserLng(ipResult.lng);
+        setIsIpFallback(true);
+        setIsLocating(false);
+        setLocationFailed(false);
+        return ipResult;
       }
 
       // Check last known expired location from storage before declaring failure
