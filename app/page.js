@@ -25,6 +25,36 @@ import {
 } from "lucide-react";
 
 const PAGE_SIZE = 10;
+const GPS_CACHE_KEY = "roomfind_user_gps";
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function getValidCachedLocation() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(GPS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const age = Date.now() - (parsed.timestamp || 0);
+    if (parsed.lat != null && parsed.lng != null && age < FIVE_MINUTES_MS) {
+      return { lat: parsed.lat, lng: parsed.lng, timestamp: parsed.timestamp };
+    }
+  } catch (_) {}
+  return null;
+}
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -120,6 +150,8 @@ export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [userLat, setUserLat] = useState(null);
   const [userLng, setUserLng] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
   const [radiusKm, setRadiusKm] = useState(10);
   const [hasNotif, setHasNotif] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -133,19 +165,188 @@ export default function HomePage() {
     return filterBySearch(listings, searchQuery.trim());
   }, [listings, searchQuery]);
 
-  // Geolocation
+  const fetchIpLocationFallback = useCallback(async () => {
+    const geoapifyKey = process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
+    if (!geoapifyKey) return null;
+    try {
+      const res = await fetch(
+        `https://api.geoapify.com/v1/ipinfo?apiKey=${geoapifyKey}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (
+          data &&
+          data.location &&
+          data.location.latitude &&
+          data.location.longitude
+        ) {
+          const ipData = {
+            lat: data.location.latitude,
+            lng: data.location.longitude,
+            isIpFallback: true,
+            timestamp: Date.now(),
+          };
+          try {
+            localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(ipData));
+          } catch (_) {}
+          setUserLat(ipData.lat);
+          setUserLng(ipData.lng);
+          return ipData;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }, []);
+
+  // Acquire / refresh GPS location with cache support & parallel IP race
+  const acquireLocation = useCallback(
+    async (forceFresh = false) => {
+      if (!forceFresh) {
+        const cached = getValidCachedLocation();
+        if (cached) {
+          setUserLat(cached.lat);
+          setUserLng(cached.lng);
+          setLocationFailed(false);
+          return { lat: cached.lat, lng: cached.lng };
+        }
+      }
+
+      setIsLocating(true);
+      setLocationFailed(false);
+
+      // Race 1: Fast IP Lookup (~150ms)
+      const ipPromise = fetchIpLocationFallback();
+
+      // Race 2: High-accuracy GPS (~1-3s)
+      const gpsPromise = new Promise((resolve) => {
+        if (typeof navigator === "undefined" || !navigator.geolocation) {
+          resolve(null);
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              isIpFallback: false,
+              timestamp: Date.now(),
+            };
+            resolve(coords);
+          },
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 },
+        );
+      });
+
+      // Execute concurrently: take whichever finishes first
+      const fastest = await Promise.race([
+        ipPromise,
+        gpsPromise.then((gpsRes) => (gpsRes ? gpsRes : ipPromise)),
+      ]);
+
+      if (fastest) {
+        try {
+          localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(fastest));
+        } catch (_) {}
+        setUserLat(fastest.lat);
+        setUserLng(fastest.lng);
+        setIsLocating(false);
+        setLocationFailed(false);
+
+        // If fast result was IP fallback, quietly upgrade when precise GPS finishes
+        gpsPromise.then((gpsRes) => {
+          if (gpsRes) {
+            try {
+              localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(gpsRes));
+            } catch (_) {}
+            setUserLat(gpsRes.lat);
+            setUserLng(gpsRes.lng);
+          }
+        });
+
+        return fastest;
+      }
+
+      // Check last known expired location from storage before declaring failure
+      try {
+        const raw = localStorage.getItem(GPS_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.lat != null && parsed.lng != null) {
+            setUserLat(parsed.lat);
+            setUserLng(parsed.lng);
+            setIsLocating(false);
+            setLocationFailed(false);
+            setToast({
+              message: "Using last known location.",
+              type: "info",
+            });
+            return parsed;
+          }
+        }
+      } catch (_) {}
+
+      // If all failed, set locationFailed state for explicit Retry UI
+      setIsLocating(false);
+      setLocationFailed(true);
+      return null;
+    },
+    [fetchIpLocationFallback],
+  );
+
+  // 1. Initial mount: Instant hydration from localStorage + background refresh
   useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    const cached = getValidCachedLocation();
+    if (cached) {
+      setUserLat(cached.lat);
+      setUserLng(cached.lng);
+    } else {
+      acquireLocation(false);
+    }
+  }, [acquireLocation]);
+
+  // 2. Periodic 5-Minute Movement Tracker & Visibility Listener
+  useEffect(() => {
+    const checkMovement = () => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
+          const newLat = pos.coords.latitude;
+          const newLng = pos.coords.longitude;
+          let prevLat = userLat;
+          let prevLng = userLng;
+          try {
+            const raw = localStorage.getItem(GPS_CACHE_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              prevLat = parsed.lat ?? prevLat;
+              prevLng = parsed.lng ?? prevLng;
+            }
+          } catch (_) {}
+
+          if (prevLat != null && prevLng != null) {
+            const distance = calculateHaversineDistance(prevLat, prevLng, newLat, newLng);
+            if (distance > 0.5) { // User moved more than 500m
+              const updated = { lat: newLat, lng: newLng, timestamp: Date.now() };
+              try { localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated)); } catch (_) {}
+              setUserLat(newLat);
+              setUserLng(newLng);
+              return;
+            }
+          }
+
+          // If stationary, refresh timestamp in cache
+          const updated = { lat: prevLat ?? newLat, lng: prevLng ?? newLng, timestamp: Date.now() };
+          try { localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated)); } catch (_) {}
         },
         () => {},
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 },
       );
-    }
-  }, []);
+    };
+
+    const intervalId = setInterval(checkMovement, FIVE_MINUTES_MS);
+    return () => clearInterval(intervalId);
+  }, [userLat, userLng]);
 
   const buildQuery = useCallback(
     (from, to) => {
@@ -320,6 +521,16 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loading, fetchPage]);
 
+  const handleFilterClick = async (filter) => {
+    setActiveFilter(filter);
+    if (filter === "Near you") {
+      const cached = getValidCachedLocation();
+      if (!cached && (userLat == null || userLng == null)) {
+        await acquireLocation(true);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#ececea] pb-24 max-w-lg mx-auto relative shadow-sm border-x border-black/[0.05]">
       {/* ── Top Header ── */}
@@ -362,7 +573,7 @@ export default function HomePage() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => setActiveFilter(f)}
+              onClick={() => handleFilterClick(f)}
               className={`shrink-0 px-3.5 py-1.5 rounded-xl text-[13px] font-medium transition-all active:scale-95 ${
                 activeFilter === f
                   ? "bg-brand text-white shadow-xs"
@@ -401,7 +612,55 @@ export default function HomePage() {
 
       {/* ── Feed ── */}
       <div className="px-3 pt-3">
-        {loading ? (
+        {locationFailed && activeFilter === "Near you" ? (
+          <div className="bg-white rounded-2xl border border-black/[0.09] p-6 text-center space-y-4 mb-4 shadow-sm">
+            <div className="w-12 h-12 rounded-2xl bg-coral/10 text-coral flex items-center justify-center mx-auto">
+              <MapPin className="w-6 h-6 text-coral" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-bold text-slate-800 text-sm">Couldn't detect your location</p>
+              <p className="text-slate-400 text-xs max-w-xs mx-auto">
+                We couldn't detect your current location. Tap retry or browse all available rooms.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+              <button
+                type="button"
+                onClick={() => acquireLocation(true)}
+                className="px-4 py-2 bg-brand text-white font-semibold text-xs rounded-xl shadow-xs hover:bg-brand-dark active:scale-95 transition-all"
+              >
+                Retry Location
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationFailed(false);
+                  setActiveFilter("All");
+                }}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 active:scale-95 transition-all"
+              >
+                Browse All Rooms
+              </button>
+            </div>
+          </div>
+        ) : isLocating && activeFilter === "Near you" ? (
+          <div className="bg-white rounded-2xl border border-black/[0.09] p-6 text-center space-y-3 mb-4 shadow-sm animate-pulse">
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center mx-auto">
+              <MapPin className="w-6 h-6 text-brand animate-bounce" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800 text-sm">Acquiring your location...</p>
+              <p className="text-slate-400 text-xs mt-0.5">Finding rooms within {radiusKm} km radius</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsLocating(false)}
+              className="text-xs text-brand font-semibold underline underline-offset-2 hover:opacity-80"
+            >
+              Show all rooms instead
+            </button>
+          </div>
+        ) : loading ? (
           Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)
         ) : fetchError ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
