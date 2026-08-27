@@ -23,11 +23,11 @@ export default function NotificationModal({ isOpen, onClose, onNotifyMe }) {
         {/* Content */}
         <div className="text-center space-y-4 pt-2 pb-1">
           {/* Animated Icon Badge */}
-          <div className="relative inline-flex items-center justify-center">
+          <div className="relative inline-flex items-center justify-center pt-1">
             <div className="w-16 h-16 rounded-2xl bg-brand/10 text-brand flex items-center justify-center border border-brand/20 shadow-inner">
               <BellRing className="w-8 h-8 text-brand animate-bounce" />
             </div>
-            <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+            <span className="absolute -top-2 -right-4 bg-amber-400 text-slate-900 text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs border border-amber-500/20 z-10">
               <Sparkles className="w-3 h-3 fill-slate-900" /> SOON
             </span>
           </div>
