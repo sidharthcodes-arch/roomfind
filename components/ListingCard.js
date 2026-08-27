@@ -38,6 +38,7 @@ export default function ListingCard({
   listing,
   currentUserId,
   onLikeToggle,
+  onBookmarkToggle,
   onShare,
 }) {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function ListingCard({
   const photos = listing.photos ?? [];
   const [liked, setLiked] = useState(listing._liked ?? false);
   const [likeCount, setLikeCount] = useState(listing._likeCount ?? 0);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(listing._saved ?? false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -59,6 +60,10 @@ export default function ListingCard({
     setLiked(listing._liked ?? false);
     setLikeCount(listing._likeCount ?? 0);
   }, [listing._liked, listing._likeCount]);
+
+  useEffect(() => {
+    setSaved(listing._saved ?? false);
+  }, [listing._saved]);
 
   const handleCardClick = () => {
     router.push(`/listings/${listing.id}`);
@@ -74,7 +79,10 @@ export default function ListingCard({
       e.preventDefault();
       e.stopPropagation();
     }
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      router.push("/auth");
+      return;
+    }
     const next = !liked;
     setLiked(next);
     setLikeCount((c) => c + (next ? 1 : -1));
@@ -89,6 +97,42 @@ export default function ListingCard({
         .delete()
         .eq("listing_id", listing.id)
         .eq("user_id", currentUserId);
+    }
+  };
+
+  const handleBookmark = async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!currentUserId) {
+      router.push("/auth");
+      return;
+    }
+    const nextSaved = !saved;
+    setSaved(nextSaved);
+    onBookmarkToggle?.(listing.id, nextSaved);
+
+    if (nextSaved) {
+      const { error } = await supabase
+        .from("bookmarks")
+        .insert({ listing_id: listing.id, user_id: currentUserId });
+      if (error && error.code !== "23505") {
+        console.error("Bookmark error:", error);
+        setSaved(saved);
+        onBookmarkToggle?.(listing.id, saved);
+      }
+    } else {
+      const { error } = await supabase
+        .from("bookmarks")
+        .delete()
+        .eq("listing_id", listing.id)
+        .eq("user_id", currentUserId);
+      if (error) {
+        console.error("Unbookmark error:", error);
+        setSaved(saved);
+        onBookmarkToggle?.(listing.id, saved);
+      }
     }
   };
 
@@ -278,15 +322,14 @@ export default function ListingCard({
         </button>
 
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSaved((s) => !s);
-          }}
+          onClick={handleBookmark}
           className="ml-auto flex items-center justify-center w-9 h-9 rounded-xl hover:bg-slate-50 transition-colors"
+          title={saved ? "Remove from saved" : "Save listing"}
+          aria-label={saved ? "Remove from saved" : "Save listing"}
         >
           <Bookmark
-            className={`w-5 h-5 ${
-              saved ? "fill-brand text-brand" : "text-slate-400"
+            className={`w-5 h-5 transition-colors ${
+              saved ? "fill-brand text-brand" : "text-slate-400 hover:text-slate-600"
             }`}
           />
         </button>

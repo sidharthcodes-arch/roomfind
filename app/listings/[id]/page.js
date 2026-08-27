@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft,
@@ -112,9 +113,18 @@ function SkeletonDetail() {
 }
 
 export default function ListingDetailPage({ params }) {
+  const router = useRouter();
   const { id } = params;
   const { user } = useAuth();
   const [listing, setListing] = useState(null);
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPhoto, setCurrentPhoto] = useState(0);
@@ -171,8 +181,8 @@ export default function ListingDetailPage({ params }) {
           }
         } catch (_) {}
 
-        // Fetch like count + user like
-        const [{ data: likesData }, { data: userLike }] = await Promise.all([
+        // Fetch like count + user like + user bookmark
+        const [{ data: likesData }, { data: userLike }, { data: userBookmark }] = await Promise.all([
           supabase.from("listing_likes").select("id").eq("listing_id", id),
           user
             ? supabase
@@ -182,9 +192,18 @@ export default function ListingDetailPage({ params }) {
                 .eq("user_id", user.id)
                 .maybeSingle()
             : Promise.resolve({ data: null }),
+          user
+            ? supabase
+                .from("bookmarks")
+                .select("id")
+                .eq("listing_id", id)
+                .eq("user_id", user.id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
         ]);
         setLikeCount(likesData?.length ?? 0);
         setLiked(!!userLike);
+        setSaved(!!userBookmark);
       } catch (err) {
         setError(err?.message ?? "Failed to load listing");
       } finally {
@@ -300,6 +319,38 @@ export default function ListingDetailPage({ params }) {
         .delete()
         .eq("listing_id", id)
         .eq("user_id", user.id);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!user) {
+      showToast("Please log in to save listings", "error");
+      return;
+    }
+    const next = !saved;
+    setSaved(next);
+    if (next) {
+      const { error } = await supabase
+        .from("bookmarks")
+        .insert({ listing_id: id, user_id: user.id });
+      if (error && error.code !== "23505") {
+        setSaved(saved);
+        showToast("Failed to save listing", "error");
+      } else {
+        showToast("Saved to bookmarks!");
+      }
+    } else {
+      const { error } = await supabase
+        .from("bookmarks")
+        .delete()
+        .eq("listing_id", id)
+        .eq("user_id", user.id);
+      if (error) {
+        setSaved(saved);
+        showToast("Failed to remove bookmark", "error");
+      } else {
+        showToast("Removed from bookmarks");
+      }
     }
   };
 
@@ -444,13 +495,14 @@ export default function ListingDetailPage({ params }) {
       {/* Top Header Bar */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3.5 py-2.5 flex items-center justify-between gap-2.5 shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <Link
-            href="/"
-            className="w-8.5 h-8.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors shrink-0"
+          <button
+            type="button"
+            onClick={handleBack}
+            className="w-8.5 h-8.5 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-slate-200 transition-colors shrink-0 outline-none border-0 p-0 cursor-pointer"
             aria-label="Back"
           >
             <ChevronLeft className="w-5 h-5 text-slate-700" />
-          </Link>
+          </button>
           <div className="min-w-0 flex-1">
             <h1 className="font-bold text-slate-900 text-sm truncate leading-snug">
               {listing.title}
@@ -786,14 +838,10 @@ export default function ListingDetailPage({ params }) {
                 </button>
 
                 <button
-                  onClick={() => {
-                    setSaved((s) => !s);
-                    showToast(
-                      saved ? "Removed from bookmarks" : "Saved to bookmarks",
-                    );
-                  }}
+                  onClick={handleBookmark}
                   className="p-2 rounded-xl hover:bg-slate-50 transition-colors ml-auto"
                   aria-label="Save listing"
+                  title={saved ? "Remove from bookmarks" : "Save to bookmarks"}
                 >
                   <Bookmark
                     className={`w-4.5 h-4.5 ${saved ? "fill-[#00a884] text-[#00a884]" : "text-slate-400"}`}

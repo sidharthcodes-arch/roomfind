@@ -113,7 +113,7 @@ export default function SearchPage() {
       try {
         const { data, error } = await supabase
           .from("listings")
-          .select("id, price, room_type, furnished, location_name, city");
+          .select("id, price, room_type, furnished, area, address, city");
 
         if (!error && data) {
           const single = data.filter(
@@ -129,7 +129,7 @@ export default function SearchPage() {
 
           const locationMap = {};
           data.forEach((l) => {
-            const rawLoc = l.location_name || l.city || "";
+            const rawLoc = l.area || l.address || l.city || "";
             if (rawLoc.trim()) {
               const cleaned = rawLoc.split(",")[0].trim();
               if (cleaned.length >= 3) {
@@ -562,9 +562,10 @@ export default function SearchPage() {
         const ids = fetchedListings.map((l) => l.id);
         let likesData = [],
           userLikes = [],
+          userBookmarks = [],
           commentsData = [];
         try {
-          const [likesRes, userLikesRes, commentsRes] = await Promise.all([
+          const [likesRes, userLikesRes, userBookmarksRes, commentsRes] = await Promise.all([
             supabase
               .from("listing_likes")
               .select("listing_id")
@@ -576,6 +577,13 @@ export default function SearchPage() {
                   .in("listing_id", ids)
                   .eq("user_id", user.id)
               : Promise.resolve({ data: [] }),
+            user?.id
+              ? supabase
+                  .from("bookmarks")
+                  .select("listing_id")
+                  .in("listing_id", ids)
+                  .eq("user_id", user.id)
+              : Promise.resolve({ data: [] }),
             supabase
               .from("listing_comments")
               .select("listing_id")
@@ -583,11 +591,13 @@ export default function SearchPage() {
           ]);
           likesData = likesRes.data ?? [];
           userLikes = userLikesRes.data ?? [];
+          userBookmarks = userBookmarksRes.data ?? [];
           commentsData = commentsRes.data ?? [];
         } catch (_) {}
 
         const likeCountMap = {};
         const userLikeSet = new Set(userLikes.map((l) => l.listing_id));
+        const userBookmarkSet = new Set(userBookmarks.map((b) => b.listing_id));
         const commentCountMap = {};
         likesData.forEach((l) => {
           likeCountMap[l.listing_id] = (likeCountMap[l.listing_id] ?? 0) + 1;
@@ -600,6 +610,7 @@ export default function SearchPage() {
         fetchedListings = fetchedListings.map((l) => ({
           ...l,
           _liked: userLikeSet.has(l.id),
+          _saved: userBookmarkSet.has(l.id),
           _likeCount: likeCountMap[l.id] ?? 0,
           _commentCount: commentCountMap[l.id] ?? 0,
         }));
@@ -1154,6 +1165,11 @@ export default function SearchPage() {
                           }
                         : l,
                     ),
+                  );
+                }}
+                onBookmarkToggle={(id, saved) => {
+                  setListings((prev) =>
+                    prev.map((l) => (l.id === id ? { ...l, _saved: saved } : l)),
                   );
                 }}
                 onShare={(l) => setShareListing(l)}

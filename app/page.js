@@ -195,13 +195,14 @@ export default function HomePage() {
         return;
       }
 
-      // Fetch like counts + user like status — failures here must NOT block listings
+      // Fetch like counts + user like status + user bookmarks — failures here must NOT block listings
       const ids = data.map((l) => l.id);
       let likesData = [],
         userLikes = [],
+        userBookmarks = [],
         commentsData = [];
       try {
-        const [likesRes, userLikesRes, commentsRes] = await Promise.all([
+        const [likesRes, userLikesRes, userBookmarksRes, commentsRes] = await Promise.all([
           supabase
             .from("listing_likes")
             .select("listing_id")
@@ -213,6 +214,13 @@ export default function HomePage() {
                 .in("listing_id", ids)
                 .eq("user_id", user.id)
             : Promise.resolve({ data: [] }),
+          user
+            ? supabase
+                .from("bookmarks")
+                .select("listing_id")
+                .in("listing_id", ids)
+                .eq("user_id", user.id)
+            : Promise.resolve({ data: [] }),
           supabase
             .from("listing_comments")
             .select("listing_id")
@@ -220,13 +228,15 @@ export default function HomePage() {
         ]);
         likesData = likesRes.data ?? [];
         userLikes = userLikesRes.data ?? [];
+        userBookmarks = userBookmarksRes.data ?? [];
         commentsData = commentsRes.data ?? [];
       } catch (_) {
-        // likes/comments tables may not exist yet — show listings anyway
+        // likes/bookmarks/comments tables may not exist yet — show listings anyway
       }
 
       const likeCountMap = {};
       const userLikeSet = new Set(userLikes.map((l) => l.listing_id));
+      const userBookmarkSet = new Set(userBookmarks.map((b) => b.listing_id));
       const commentCountMap = {};
       likesData.forEach((l) => {
         likeCountMap[l.listing_id] = (likeCountMap[l.listing_id] ?? 0) + 1;
@@ -239,6 +249,7 @@ export default function HomePage() {
       let enriched = data.map((l) => ({
         ...l,
         _liked: userLikeSet.has(l.id),
+        _saved: userBookmarkSet.has(l.id),
         _likeCount: likeCountMap[l.id] ?? 0,
         _commentCount: commentCountMap[l.id] ?? 0,
       }));
@@ -266,6 +277,14 @@ export default function HomePage() {
                 : Math.max(0, (item._likeCount ?? 1) - 1),
             }
           : item,
+      ),
+    );
+  };
+
+  const handleBookmarkToggle = (listingId, isSaved) => {
+    setListings((prev) =>
+      prev.map((item) =>
+        item.id === listingId ? { ...item, _saved: isSaved } : item,
       ),
     );
   };
@@ -426,6 +445,7 @@ export default function HomePage() {
                 listing={listing}
                 currentUserId={user?.id ?? null}
                 onLikeToggle={handleLikeToggle}
+                onBookmarkToggle={handleBookmarkToggle}
                 onShare={(l) => setShareListing(l)}
               />
             ))}
