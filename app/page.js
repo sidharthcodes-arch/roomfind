@@ -202,30 +202,31 @@ export default function HomePage() {
         userBookmarks = [],
         commentsData = [];
       try {
-        const [likesRes, userLikesRes, userBookmarksRes, commentsRes] = await Promise.all([
-          supabase
-            .from("listing_likes")
-            .select("listing_id")
-            .in("listing_id", ids),
-          user
-            ? supabase
-                .from("listing_likes")
-                .select("listing_id")
-                .in("listing_id", ids)
-                .eq("user_id", user.id)
-            : Promise.resolve({ data: [] }),
-          user
-            ? supabase
-                .from("bookmarks")
-                .select("listing_id")
-                .in("listing_id", ids)
-                .eq("user_id", user.id)
-            : Promise.resolve({ data: [] }),
-          supabase
-            .from("listing_comments")
-            .select("listing_id")
-            .in("listing_id", ids),
-        ]);
+        const [likesRes, userLikesRes, userBookmarksRes, commentsRes] =
+          await Promise.all([
+            supabase
+              .from("listing_likes")
+              .select("listing_id")
+              .in("listing_id", ids),
+            user
+              ? supabase
+                  .from("listing_likes")
+                  .select("listing_id")
+                  .in("listing_id", ids)
+                  .eq("user_id", user.id)
+              : Promise.resolve({ data: [] }),
+            user
+              ? supabase
+                  .from("bookmarks")
+                  .select("listing_id")
+                  .in("listing_id", ids)
+                  .eq("user_id", user.id)
+              : Promise.resolve({ data: [] }),
+            supabase
+              .from("listing_comments")
+              .select("listing_id")
+              .in("listing_id", ids),
+          ]);
         likesData = likesRes.data ?? [];
         userLikes = userLikesRes.data ?? [];
         userBookmarks = userBookmarksRes.data ?? [];
@@ -424,9 +425,13 @@ export default function HomePage() {
         ) : displayListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl p-6 border border-slate-200/80 my-3 shadow-xs">
             <MapPin className="w-10 h-10 text-slate-300 mb-3" />
-            <p className="text-slate-800 font-bold text-[15px] mb-1">No listings found</p>
+            <p className="text-slate-800 font-bold text-[15px] mb-1">
+              No listings found
+            </p>
             <p className="text-slate-500 text-[13px] max-w-xs mb-4">
-              {searchQuery ? `No rooms matched "${searchQuery}"` : "Try a different filter"}
+              {searchQuery
+                ? `No rooms matched "${searchQuery}"`
+                : "Try a different filter"}
             </p>
             {searchQuery && (
               <button

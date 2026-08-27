@@ -475,7 +475,7 @@ export default function ListingDetailPage({ params }) {
   const cleanPhone = rawPhone.replace(/\D/g, "");
   const whatsappHref = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Hi, I saw your listing "${listing.title}" on RoomFind. Is it still available?`)}`
-    : `https://wa.me/?text=${encodeURIComponent(`Hi, I am inquiring about the listing "${listing.title}" on RoomFind.`)}`;
+    : null;
 
   const googleMapsDirectionsUrl =
     listing.latitude != null && listing.longitude != null
@@ -1074,7 +1074,7 @@ export default function ListingDetailPage({ params }) {
           <div className="flex-1 max-w-[210px] py-3 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs text-center select-none">
             Taken
           </div>
-        ) : (
+        ) : whatsappHref ? (
           <a
             href={whatsappHref}
             target="_blank"
@@ -1091,6 +1091,27 @@ export default function ListingDetailPage({ params }) {
             </svg>
             <span>Contact Owner</span>
           </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() =>
+              setToast({
+                message: "Owner phone number is not available for this listing.",
+                type: "error",
+              })
+            }
+            className="flex-1 max-w-[210px] flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-700 hover:bg-slate-800 active:scale-98 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+          >
+            <svg
+              className="w-5 h-5 fill-current text-white shrink-0 opacity-70"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+            >
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+            <span>Contact Owner</span>
+          </button>
         )}
       </div>
 
