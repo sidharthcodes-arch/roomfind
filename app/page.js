@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { filterByDistance, filterBySearch } from "@/lib/utils";
 import ShareModal from "@/components/ShareModal";
+import ListingCard from "@/components/ListingCard";
 import TwitterImageGrid from "@/components/TwitterImageGrid";
 import ImageLightboxModal from "@/components/ImageLightboxModal";
 import NotificationModal from "@/components/NotificationModal";
@@ -138,17 +139,6 @@ async function copyTextToClipboard(text) {
   }
 }
 
-function Toast({ message, type = 'info', onDismiss }) {
-  if (!message) return null;
-  const bg = type === 'success' ? 'bg-brand' : type === 'info' ? 'bg-slate-800' : 'bg-red-500';
-  return (
-    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 ${bg} text-white text-[13px] px-4 py-3 rounded-xl shadow-lg max-w-sm w-full mx-4 flex items-center justify-between gap-3 animate-fade-in`}>
-      <span>{message}</span>
-      <button onClick={onDismiss} className="text-white/80 hover:text-white shrink-0">✕</button>
-    </div>
-  );
-}
-
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -169,7 +159,6 @@ export default function HomePage() {
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [shareListing, setShareListing] = useState(null);
-  const [toast, setToast] = useState(null);
   const pageRef = useRef(0);
   const sentinelRef = useRef(null);
 
@@ -223,23 +212,12 @@ export default function HomePage() {
           setLocationFailed(false);
           return cached;
         }
-      } else {
-        // When forcing a fresh location check, clear stale IP fallback cache
-        try {
-          const raw = localStorage.getItem(GPS_CACHE_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed && parsed.isIpFallback) {
-              localStorage.removeItem(GPS_CACHE_KEY);
-            }
-          }
-        } catch (_) {}
       }
 
       setIsLocating(true);
       setLocationFailed(false);
 
-      // Primary Attempt: High-Accuracy Device Satellite GPS (10s timeout, maximumAge 0)
+      // Primary Attempt: High-Accuracy Device Satellite GPS (Stays in loading state until user allows or denies)
       const gpsPromise = new Promise((resolve) => {
         if (typeof navigator === "undefined" || !navigator.geolocation) {
           resolve(null);
@@ -255,7 +233,7 @@ export default function HomePage() {
             });
           },
           () => resolve(null),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+          { enableHighAccuracy: true, maximumAge: 0 },
         );
       });
 
@@ -346,10 +324,22 @@ export default function HomePage() {
           } catch (_) {}
 
           if (prevLat != null && prevLng != null) {
-            const distance = calculateHaversineDistance(prevLat, prevLng, newLat, newLng);
-            if (distance > 0.5) { // User moved more than 500m
-              const updated = { lat: newLat, lng: newLng, timestamp: Date.now() };
-              try { localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated)); } catch (_) {}
+            const distance = calculateHaversineDistance(
+              prevLat,
+              prevLng,
+              newLat,
+              newLng,
+            );
+            if (distance > 0.5) {
+              // User moved more than 500m
+              const updated = {
+                lat: newLat,
+                lng: newLng,
+                timestamp: Date.now(),
+              };
+              try {
+                localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated));
+              } catch (_) {}
               setUserLat(newLat);
               setUserLng(newLng);
               return;
@@ -357,8 +347,14 @@ export default function HomePage() {
           }
 
           // If stationary, refresh timestamp in cache
-          const updated = { lat: prevLat ?? newLat, lng: prevLng ?? newLng, timestamp: Date.now() };
-          try { localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated)); } catch (_) {}
+          const updated = {
+            lat: prevLat ?? newLat,
+            lng: prevLng ?? newLng,
+            timestamp: Date.now(),
+          };
+          try {
+            localStorage.setItem(GPS_CACHE_KEY, JSON.stringify(updated));
+          } catch (_) {}
         },
         () => {},
         { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 },
@@ -543,22 +539,18 @@ export default function HomePage() {
   }, [hasMore, loadingMore, loading, fetchPage]);
 
   const handleFilterClick = async (filter) => {
+    setActiveFilter(filter);
     if (filter === "Near you") {
       const cached = getValidCachedLocation();
       const isCurrentIp = cached ? !!cached.isIpFallback : isIpFallback;
 
-      // If no location OR current location is from IP fallback, reset stale IP state, activate loading UI, & acquire fresh GPS
+      // If no location OR current location is from IP fallback, force fresh GPS acquisition and hold loading UI
       if (!cached || isCurrentIp || userLat == null || userLng == null) {
-        setUserLat(null);
-        setUserLng(null);
         setIsLocating(true);
-        setActiveFilter(filter);
         await acquireLocation(true);
         setIsLocating(false);
-        return;
       }
     }
-    setActiveFilter(filter);
   };
 
   return (
@@ -651,9 +643,12 @@ export default function HomePage() {
               <MapPin className="w-6 h-6 text-coral" />
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-slate-800 text-sm">Couldn't detect your location</p>
+              <p className="font-bold text-slate-800 text-sm">
+                Couldn't detect your location
+              </p>
               <p className="text-slate-400 text-xs max-w-xs mx-auto">
-                We couldn't detect your current location. Tap retry or browse all available rooms.
+                We couldn't detect your current location. Tap retry or browse
+                all available rooms.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
@@ -687,7 +682,9 @@ export default function HomePage() {
                   ? "Acquiring precise GPS location..."
                   : "Acquiring your location..."}
               </p>
-              <p className="text-slate-400 text-xs mt-0.5">Finding rooms within {radiusKm} km radius</p>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Finding rooms within {radiusKm} km radius
+              </p>
             </div>
             <button
               type="button"
@@ -787,15 +784,6 @@ export default function HomePage() {
         isOpen={showNotifModal}
         onClose={() => setShowNotifModal(false)}
       />
-
-      {/* ── Toast Notification ── */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onDismiss={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }
