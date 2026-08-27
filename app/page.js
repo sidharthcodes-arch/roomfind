@@ -153,6 +153,7 @@ export default function HomePage() {
   const [userLng, setUserLng] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  const [isIpFallback, setIsIpFallback] = useState(false);
   const [radiusKm, setRadiusKm] = useState(10);
   const [hasNotif, setHasNotif] = useState(true);
   const [showNotifModal, setShowNotifModal] = useState(false);
@@ -208,8 +209,9 @@ export default function HomePage() {
         if (cached) {
           setUserLat(cached.lat);
           setUserLng(cached.lng);
+          setIsIpFallback(!!cached.isIpFallback);
           setLocationFailed(false);
-          return { lat: cached.lat, lng: cached.lng };
+          return cached;
         }
       }
 
@@ -236,7 +238,7 @@ export default function HomePage() {
             resolve(coords);
           },
           () => resolve(null),
-          { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
         );
       });
 
@@ -252,6 +254,7 @@ export default function HomePage() {
         } catch (_) {}
         setUserLat(fastest.lat);
         setUserLng(fastest.lng);
+        setIsIpFallback(!!fastest.isIpFallback);
         setIsLocating(false);
         setLocationFailed(false);
 
@@ -263,6 +266,7 @@ export default function HomePage() {
             } catch (_) {}
             setUserLat(gpsRes.lat);
             setUserLng(gpsRes.lng);
+            setIsIpFallback(false);
           }
         });
 
@@ -524,13 +528,17 @@ export default function HomePage() {
   }, [hasMore, loadingMore, loading, fetchPage]);
 
   const handleFilterClick = async (filter) => {
+    setActiveFilter(filter);
     if (filter === "Near you") {
-      if (userLat == null || userLng == null) {
+      const cached = getValidCachedLocation();
+      const isCurrentIp = cached ? !!cached.isIpFallback : isIpFallback;
+
+      // If no location OR current location is from IP fallback, force fresh GPS acquisition and hold loading UI
+      if (!cached || isCurrentIp || userLat == null || userLng == null) {
+        setIsLocating(true);
         await acquireLocation(true);
+        setIsLocating(false);
       }
-      setActiveFilter(filter);
-    } else {
-      setActiveFilter(filter);
     }
   };
 
@@ -655,7 +663,11 @@ export default function HomePage() {
               <MapPin className="w-6 h-6 text-brand animate-bounce" />
             </div>
             <div>
-              <p className="font-bold text-slate-800 text-sm">Acquiring your location...</p>
+              <p className="font-bold text-slate-800 text-sm">
+                {isIpFallback
+                  ? "Acquiring precise GPS location..."
+                  : "Acquiring your location..."}
+              </p>
               <p className="text-slate-400 text-xs mt-0.5">Finding rooms within {radiusKm} km radius</p>
             </div>
             <button
