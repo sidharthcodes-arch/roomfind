@@ -138,7 +138,16 @@ async function copyTextToClipboard(text) {
   }
 }
 
-import ListingCard from "@/components/ListingCard";
+function Toast({ message, type = 'info', onDismiss }) {
+  if (!message) return null;
+  const bg = type === 'success' ? 'bg-brand' : type === 'info' ? 'bg-slate-800' : 'bg-red-500';
+  return (
+    <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 ${bg} text-white text-[13px] px-4 py-3 rounded-xl shadow-lg max-w-sm w-full mx-4 flex items-center justify-between gap-3 animate-fade-in`}>
+      <span>{message}</span>
+      <button onClick={onDismiss} className="text-white/80 hover:text-white shrink-0">✕</button>
+    </div>
+  );
+}
 
 // ─── main page ────────────────────────────────────────────────────────────────
 
@@ -160,6 +169,7 @@ export default function HomePage() {
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [shareListing, setShareListing] = useState(null);
+  const [toast, setToast] = useState(null);
   const pageRef = useRef(0);
   const sentinelRef = useRef(null);
 
@@ -777,6 +787,15 @@ export default function HomePage() {
         isOpen={showNotifModal}
         onClose={() => setShowNotifModal(false)}
       />
+
+      {/* ── Toast Notification ── */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
