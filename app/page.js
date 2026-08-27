@@ -218,7 +218,7 @@ export default function HomePage() {
       setIsLocating(true);
       setLocationFailed(false);
 
-      // Primary Attempt: High-Accuracy Device Satellite GPS (6s window)
+      // Primary Attempt: High-Accuracy Device Satellite GPS (Stays in loading state until user allows or denies)
       const gpsPromise = new Promise((resolve) => {
         if (typeof navigator === "undefined" || !navigator.geolocation) {
           resolve(null);
@@ -234,7 +234,7 @@ export default function HomePage() {
             });
           },
           () => resolve(null),
-          { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 },
+          { enableHighAccuracy: true, maximumAge: 0 },
         );
       });
 
@@ -252,7 +252,7 @@ export default function HomePage() {
         return gpsResult;
       }
 
-      // Secondary Attempt: If GPS timed out or failed after 6s, fallback to IP Geolocation
+      // ONLY IF GPS explicitly fails (e.g., user clicked Block / denied permission):
       const ipResult = await fetchIpLocationFallback();
 
       if (ipResult) {
