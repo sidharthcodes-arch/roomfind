@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { getDistance } from '@/lib/utils'
 import { Home, Loader2, MapPin, CheckCircle, ArrowLeft, ShieldCheck, Heart, Sparkles } from 'lucide-react'
 import CountryPhoneInput from '@/components/CountryPhoneInput'
 import { RoomFindLogo } from '@/components/Logo'
@@ -30,8 +31,21 @@ export default function AuthPage() {
   const [step, setStep] = useState('form')   // 'form' | 'role'
 
   useEffect(() => {
-    if (!authLoading && user && step !== 'role') {
-      router.replace('/')
+    if (!authLoading && user) {
+      supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (!data?.role) {
+            setStep('role')
+            setPendingUserId(user.id)
+            setPendingEmail(user.email)
+          } else if (step !== 'role') {
+            router.replace('/')
+          }
+        })
     }
   }, [user, authLoading, step, router])
   
@@ -48,6 +62,120 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState(null)
+
+  // ── Hero Card Dynamic Listing & Location State ──
+  const [heroListing, setHeroListing] = useState(null)
+  const [heroDistance, setHeroDistance] = useState(null)
+  const [isLocationGranted, setIsLocationGranted] = useState(false)
+  const [isLocatingHero, setIsLocatingHero] = useState(false)
+  const [heroLoading, setHeroLoading] = useState(true)
+
+  const loadHeroListing = useCallback(async (userLat = null, userLng = null) => {
+    try {
+      setHeroLoading(true)
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        if (userLat != null && userLng != null) {
+          let nearest = null
+          let minDistance = Infinity
+
+          for (const listing of data) {
+            if (listing.latitude != null && listing.longitude != null) {
+              const dist = getDistance(userLat, userLng, listing.latitude, listing.longitude)
+              if (dist != null && dist < minDistance) {
+                minDistance = dist
+                nearest = listing
+              }
+            }
+          }
+
+          if (nearest && minDistance !== Infinity) {
+            setHeroListing(nearest)
+            setHeroDistance(minDistance)
+            setIsLocationGranted(true)
+            setHeroLoading(false)
+            return
+          }
+        }
+
+        // Fallback: Pick top active listing as Featured Listing
+        setHeroListing(data[0])
+        setHeroDistance(null)
+        setIsLocationGranted(false)
+      } else {
+        setHeroListing(null)
+      }
+    } catch (err) {
+      console.error('Error fetching hero listing:', err)
+    } finally {
+      setHeroLoading(false)
+    }
+  }, [])
+
+  const handleRequestLocationHero = async () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      showToast('Geolocation is not supported by your browser.', 'error')
+      return
+    }
+    setIsLocatingHero(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        try {
+          localStorage.setItem('roomfind_user_gps', JSON.stringify({ lat, lng, timestamp: Date.now() }))
+        } catch (_) {}
+        loadHeroListing(lat, lng)
+        setIsLocatingHero(false)
+      },
+      () => {
+        setIsLocatingHero(false)
+        showToast('Location permission denied or unavailable.', 'error')
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
+  useEffect(() => {
+    let lat = null
+    let lng = null
+    try {
+      const raw = localStorage.getItem('roomfind_user_gps')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed.lat != null && parsed.lng != null) {
+          lat = parsed.lat
+          lng = parsed.lng
+        }
+      }
+    } catch (_) {}
+
+    if (lat != null && lng != null) {
+      loadHeroListing(lat, lng)
+    } else {
+      if (typeof navigator !== 'undefined' && navigator.permissions) {
+        navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+          if (status.state === 'granted') {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => loadHeroListing(pos.coords.latitude, pos.coords.longitude),
+              () => loadHeroListing(null, null)
+            )
+          } else {
+            loadHeroListing(null, null)
+          }
+        }).catch(() => loadHeroListing(null, null))
+      } else {
+        loadHeroListing(null, null)
+      }
+    }
+  }, [loadHeroListing])
 
   const showToast = (message, type = 'error') => {
     setToast({ message, type })
@@ -92,21 +220,29 @@ export default function AuthPage() {
         setResetSent(true)
       }
     } catch (err) {
-      showToast(err?.message ?? 'Something went wrong')
+      const msg = err?.message?.toLowerCase() ?? ''
+      if (mode === 'signup' && (msg.includes('already registered') || msg.includes('already exists'))) {
+        showToast('An account with this email already exists! Try logging in or click "Continue with Google".', 'info')
+      } else if (mode === 'login' && msg.includes('invalid login credentials')) {
+        showToast('Invalid credentials. If you created your account with Google, try clicking "Continue with Google".', 'error')
+      } else {
+        showToast(err?.message ?? 'Something went wrong')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
   const selectRole = async (role) => {
-    if (!pendingUserId) return
+    const targetUserId = pendingUserId || user?.id
+    if (!targetUserId) return
     setIsLoading(true)
     try {
       const { error } = await supabase.from('users').upsert({
-        id: pendingUserId,
-        email: pendingEmail,
-        full_name: fullName.trim() || null,
-        phone_number: phoneNumber.trim() || null,
+        id: targetUserId,
+        email: pendingEmail || user?.email,
+        full_name: fullName.trim() || undefined,
+        phone_number: phoneNumber.trim() || undefined,
         role
       }, { onConflict: 'id' })
       if (error) throw error
@@ -122,7 +258,7 @@ export default function AuthPage() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/` }
+        options: { redirectTo: `${window.location.origin}/auth/callback` }
       })
       if (error) throw error
     } catch (err) {
@@ -217,35 +353,103 @@ export default function AuthPage() {
               Connect directly with verified room owners in your area. Real-time GPS distance calculation, instant WhatsApp chat, and simple rental discovery.
             </p>
 
-            {/* Room Card Live Preview Mockup */}
+            {/* Dynamic Room Card Preview */}
             <div className="bg-[#0B1E19]/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-mono font-medium text-emerald-200">LIVE NEARBY RADAR</span>
-                </div>
-                <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                  📍 1.2 km away
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-900/60 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <MapPin className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-white text-[14px] truncate">Cozy Single Room</span>
-                    <span className="font-bold text-emerald-400 text-[15px]">₹8,500<span className="text-xs text-emerald-200/60 font-normal">/mo</span></span>
+              {heroLoading ? (
+                <div className="animate-pulse space-y-3 py-1">
+                  <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                    <div className="h-3 w-28 bg-white/20 rounded" />
+                    <div className="h-4 w-20 bg-white/20 rounded-full" />
                   </div>
-                  <p className="text-xs text-white/60 truncate">Koramangala 4th Block · Furnished</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white/10 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-white/20 rounded w-3/4" />
+                      <div className="h-3 bg-white/10 rounded w-1/2" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : heroListing ? (
+                <>
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${isLocationGranted ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+                      <span className="text-xs font-mono font-medium text-emerald-200 uppercase tracking-wider">
+                        {isLocationGranted ? 'CLOSEST ROOM TO YOU' : 'FEATURED LISTING'}
+                      </span>
+                    </div>
 
-              <div className="flex items-center justify-between text-[11px] text-emerald-200/60 pt-1">
-                <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Verified Owner</span>
-                <span className="flex items-center gap-1 text-emerald-300"><Heart className="w-3 h-3 fill-emerald-300" /> Direct WhatsApp</span>
-              </div>
+                    {isLocationGranted && heroDistance != null ? (
+                      <span className="text-[11px] font-medium bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                        📍 {heroDistance < 1 ? `${Math.round(heroDistance * 1000)} m away` : `${heroDistance.toFixed(1)} km away`}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRequestLocationHero}
+                        disabled={isLocatingHero}
+                        className="text-[11px] font-medium bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Enable GPS to calculate distance to your location"
+                      >
+                        {isLocatingHero ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-emerald-300" />
+                        ) : (
+                          <MapPin className="w-3 h-3 text-emerald-400" />
+                        )}
+                        <span>{isLocatingHero ? 'Locating...' : '📍 See nearest room'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {heroListing.photos && heroListing.photos.length > 0 ? (
+                      <img
+                        src={heroListing.photos[0]}
+                        alt={heroListing.title}
+                        className="w-12 h-12 rounded-xl object-cover border border-emerald-500/20 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-emerald-900/60 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <MapPin className="w-6 h-6 text-emerald-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white text-[14px] truncate">{heroListing.title}</span>
+                        <span className="font-bold text-emerald-400 text-[15px]">
+                          ₹{Number(heroListing.price || 0).toLocaleString('en-IN')}
+                          <span className="text-xs text-emerald-200/60 font-normal">/mo</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/60 truncate">
+                        {heroListing.area || heroListing.city || 'Bangalore'} · {heroListing.furnished ? 'Furnished' : 'Unfurnished'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-emerald-200/60 pt-1">
+                    <span className="flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Verified Owner</span>
+                    <span className="flex items-center gap-1 text-emerald-300"><Heart className="w-3 h-3 fill-emerald-300" /> Direct WhatsApp</span>
+                  </div>
+                </>
+              ) : (
+                /* Fallback if database has no active listings */
+                <div className="py-1 space-y-2">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <span className="text-xs font-mono text-emerald-200">VERIFIED ROOMS</span>
+                    <button
+                      type="button"
+                      onClick={handleRequestLocationHero}
+                      disabled={isLocatingHero}
+                      className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1 cursor-pointer"
+                    >
+                      {isLocatingHero ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                      <span>Find near me</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-white/70">Connect directly with verified room owners with zero broker fees.</p>
+                </div>
+              )}
             </div>
 
             {/* Stat Row Proof Points (Filling bottom space smoothly) */}
@@ -304,17 +508,42 @@ export default function AuthPage() {
               </div>
             )}
 
+            {/* Vector Line-Art Illustration for Forgot Password mode */}
+            {mode === 'forgot' && (
+              <div className="mb-5 flex justify-center">
+                <div className="w-20 h-20 rounded-full bg-brand/5 flex items-center justify-center">
+                  <svg
+                    className="w-14 h-14 text-slate-700"
+                    viewBox="0 0 100 100"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M 50,75 L 50,35" />
+                    <path d="M 32,35 L 68,35 L 75,25 L 68,15 L 32,15 Z" fill="white" />
+                    <line x1="38" y1="23" x2="58" y2="23" strokeWidth="2" />
+                    <line x1="38" y1="28" x2="52" y2="28" strokeWidth="1.8" strokeOpacity="0.5" />
+                    <ellipse cx="50" cy="78" rx="20" ry="4" fill="currentColor" fillOpacity="0.15" stroke="none" />
+                    <path d="M 28,78 C 30,73 31,73 33,78" />
+                    <path d="M 67,78 C 69,73 70,73 72,78" />
+                  </svg>
+                </div>
+              </div>
+            )}
+
             {/* Header Titles with improved breathing room */}
-            <div className="mb-7">
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <div className={`mb-7 ${mode === 'forgot' ? 'text-center' : ''}`}>
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 {mode === 'login' && 'Welcome back'}
                 {mode === 'signup' && 'Create your account'}
-                {mode === 'forgot' && 'Reset your password'}
+                {mode === 'forgot' && 'Forgot your password?'}
               </h2>
               <p className="text-slate-500 text-[13.5px] mt-1.5 leading-normal">
                 {mode === 'login' && 'Log in to manage your listings and search saved rooms.'}
                 {mode === 'signup' && 'Join RoomFind to discover rooms near you.'}
-                {mode === 'forgot' && 'Enter your email to receive a password reset link.'}
+                {mode === 'forgot' && 'Enter your email so that we can send you password reset link.'}
               </p>
             </div>
 
@@ -329,7 +558,7 @@ export default function AuthPage() {
                   onClick={() => { setMode('login'); setResetSent(false); setErrors({}) }}
                   className="w-full text-brand font-semibold text-[13px] hover:underline"
                 >
-                  ← Back to Log In
+                  ‹ Back to Log In
                 </button>
               </div>
             ) : (
@@ -372,12 +601,12 @@ export default function AuthPage() {
                   </label>
                   <input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="e.g. username@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full px-3.5 py-2.5 border rounded-xl text-[14px] focus:outline-none focus:ring-2 focus:ring-brand ${
-                      errors.email ? 'border-red-400 bg-red-50' : 'border-black/[0.09] bg-white'
-                    }`}
+                    className={`w-full border text-[14px] focus:outline-none focus:ring-2 focus:ring-brand ${
+                      mode === 'forgot' ? 'rounded-full px-5 py-3' : 'rounded-xl px-3.5 py-2.5'
+                    } ${errors.email ? 'border-red-400 bg-red-50' : 'border-black/[0.09] bg-white'}`}
                   />
                   {errors.email && <p className="text-red-500 text-[12px] mt-1">{errors.email}</p>}
                 </div>
@@ -449,7 +678,9 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-brand hover:opacity-90 active:scale-[0.99] text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-[14.5px] shadow-lg shadow-brand/20 mt-2"
+                  className={`w-full bg-brand hover:opacity-90 active:scale-[0.99] text-white font-bold py-3 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-[14.5px] shadow-lg shadow-brand/20 mt-2 ${
+                    mode === 'forgot' ? 'rounded-full py-3.5' : 'rounded-xl'
+                  }`}
                 >
                   {isLoading && <Loader2 className="animate-spin w-4 h-4" />}
                   {mode === 'login' && 'Log in'}
@@ -462,9 +693,9 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => { setMode('login'); setErrors({}) }}
-                    className="w-full text-slate-500 text-[13px] font-medium hover:text-slate-800 transition-colors pt-2 block text-center"
+                    className="w-full text-slate-500 text-[13px] font-medium hover:text-slate-900 transition-colors pt-3 flex items-center justify-center gap-1 mx-auto"
                   >
-                    ← Back to Log In
+                    <span>‹</span> Back to Log In
                   </button>
                 )}
               </form>
